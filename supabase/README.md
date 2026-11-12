@@ -1,6 +1,6 @@
 # Database
 
-Run `migrations/20261111000000_create_products.sql` in your Supabase project's SQL Editor once to create `public.products`.
+Run the SQL files in `migrations/` in filename order in your Supabase project's SQL Editor, once each. The first creates `public.products`; the second configures public read-only access.
 
 - `id`: text primary key, with a generated UUID string when omitted.
 - `name`, `price`, `q_available`, `desc`: required, nonempty text.
@@ -8,4 +8,9 @@ Run `migrations/20261111000000_create_products.sql` in your Supabase project's S
 
 The future backend can supply a generated ID explicitly. The primary key enforces uniqueness.
 
-Row level security is enabled with no browser access policies. Manage products through the SQL Editor or a trusted backend using the service role; keep service credentials out of the frontend. Public reading and admin permissions can be added when those flows are implemented.
+`public` is the schema name. Access is controlled by grants and row level security:
+
+- Visitors and signed-in users (`anon`, `authenticated`) can read products only.
+- The trusted backend (`service_role`) can create, edit, and delete products.
+
+Keep service credentials out of the frontend. Database administrators can also manage the table through the SQL Editor.
