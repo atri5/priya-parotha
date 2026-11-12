@@ -23,4 +23,4 @@ There are only two tests: one for the Product class and one for the API's create
 - `test/product-api.test.js` — API validation, ID, partial edit, and deletion tests
 - `test-support/` — shared test fixtures
 
-No HTTP server or persistence is configured. The frontend still runs independently as a static website.
+The Supabase table migration and setup instructions are in [../supabase/README.md](../supabase/README.md). The API is not connected to it yet. The frontend still runs independently as a static website.

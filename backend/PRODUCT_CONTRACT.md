@@ -35,4 +35,6 @@ These choices can be reviewed before implementation. At the user's request, the 
 
 ## Deliberately deferred
 
-There is no implemented product logic, database, HTTP server, framework, authentication, photo upload, or deployed backend. Empty update objects and additional unknown fields have no specified behavior yet. Tests must remain active and are expected to fail against the placeholders until the backend is implemented.
+The Supabase schema is defined in `../supabase/migrations/20261111000000_create_products.sql`: `public.products` has exactly the six fields above, with `id` as its primary key. IDs are stored as text with a generated UUID string as the database default. Photos use a nonempty JSON array; price and quantity remain text. The intended initial scale is 20–30 products.
+
+There is no implemented product logic, HTTP server, framework, authentication, photo upload, or deployed backend. Empty update objects and additional unknown fields have no specified behavior yet. Tests must remain active and are expected to fail against the placeholders until the backend is implemented.
