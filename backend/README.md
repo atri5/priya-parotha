@@ -17,6 +17,7 @@ There are only two tests: one for the Product class and one for the API's create
 
 ## Layout
 
+- `data/products.csv` — five sample products for local queries, including one out of stock; prices, quantities, and photo URLs are illustrative. `photos` contains a JSON array inside each CSV cell. Parse it as JSON; keep other fields as strings.
 - `src/product.js` — Product class interface placeholder
 - `src/product-api.js` — create, edit, and delete interface placeholders
 - `test/product.test.js` — product field and validation tests

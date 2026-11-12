@@ -1,0 +1,6 @@
+id,name,price,q_available,desc,photos
+00000000-0000-4000-8000-000000000001,Aloo Parotha,5.00,20,Potato-stuffed flatbread.,"[""https://example.com/aloo-parotha.jpg""]"
+00000000-0000-4000-8000-000000000002,Paneer Parotha,6.00,15,Paneer-stuffed flatbread.,"[""https://example.com/paneer-parotha.jpg""]"
+00000000-0000-4000-8000-000000000003,Gobi Parotha,5.50,10,Cauliflower-stuffed flatbread.,"[""https://example.com/gobi-parotha.jpg""]"
+00000000-0000-4000-8000-000000000004,Methi Parotha,4.50,8,Flatbread with fenugreek leaves.,"[""https://example.com/methi-parotha.jpg""]"
+00000000-0000-4000-8000-000000000005,Mixed Veg Parotha,6.50,0,"Flatbread stuffed with carrots, peas and potatoes.","[""https://example.com/mixed-veg-parotha.jpg""]"
