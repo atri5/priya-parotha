@@ -13,7 +13,7 @@ This file preserves the requirements agreed with the user for future backend imp
 | `desc` | string | Required and nonempty |
 | `photos` | array | Required and nonempty |
 
-The user's `''` and `[]` examples describe the field types, not valid default values. Missing, `undefined`, `null`, empty, and incorrectly typed fields must cause an error. Tests treat whitespace-only strings as empty. Price and quantity stay strings; `'0'` is nonempty and valid under the current rules. Photo element formats and numeric formatting rules have not been specified.
+The user's `''` and `[]` examples describe the field types, not valid default values. Missing, `undefined`, `null`, empty, and incorrectly typed fields must cause an error. Whitespace-only strings count as empty. Price and quantity stay strings; `'0'` is nonempty and valid under the current rules. Photo element formats and numeric formatting rules have not been specified.
 
 ## API behavior
 
@@ -22,9 +22,9 @@ The user's `''` and `[]` examples describe the field types, not valid default va
 - `deleteProduct(id)` removes the selected product.
 - The functions must throw or reject with an Error when required input is absent or empty. Validation errors should identify the affected field.
 
-## Interface choices captured by the tests
+## Interface choices for future implementation
 
-These choices make the requirements executable and can be reviewed before implementation:
+These choices can be reviewed before implementation. At the user's request, the tests cover only core functionality and representative validation in one test per source file; they do not exhaustively verify every rule below.
 
 - `new Product(data)` accepts all six fields; the API assigns `id` before constructing a Product.
 - `createProductApi()` supplies isolated `createProduct`, `editProduct`, and `deleteProduct` methods. Tests await results so storage may become asynchronous later.

@@ -13,7 +13,7 @@ npm test
 
 Node's built-in test runner requires no third-party dependencies or installation step.
 
-The tests are active and intentionally fail against the unimplemented interfaces in `src/`. Product validation and CRUD functionality will be implemented separately.
+There are only two tests: one for the Product class and one for the API's create/edit/delete flow, with representative validation checks. They intentionally fail against the unimplemented interfaces in `src/`. Product validation and CRUD functionality will be implemented separately.
 
 ## Layout
 
