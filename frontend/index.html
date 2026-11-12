@@ -3,17 +3,79 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="The beginning of Priya Parotha's website." />
-    <meta name="theme-color" content="#faf7f0" />
-    <title>Priya Parotha | Hello world</title>
+    <title>Priya Parotha | Home cooked Indian food in San Ramon</title>
+    <meta name="description" content="Home cooked Indian food from Piryanka’s kitchen in Windemere, San Ramon. Fresh organic ingredients, with pickup and delivery available." />
+    <meta name="theme-color" content="#faf7ef" />
+    <meta property="og:title" content="Priya Parotha | A little taste of home" />
+    <meta property="og:description" content="Home cooked Indian food, fresh organic ingredients, and a warm welcome from our kitchen in Windemere, San Ramon." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="assets/home-cooked-meal.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="assets/flower.svg" type="image/svg+xml" />
+    <link rel="preload" href="assets/manrope-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="styles.css" />
+    <script src="main.js" defer></script>
   </head>
   <body>
-    <main>
-      <p class="eyebrow">Priya Parotha</p>
-      <h1>Hello, world<span>!</span></h1>
-      <p class="intro">Something good is on the way.</p>
-      <p class="note">Our website starts here. More coming soon.</p>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <a class="brand title-1" href="index.html"><img src="assets/flower.svg" alt="" width="36" height="36" />Priya Parotha</a>
+      <nav class="main-nav body-5" aria-label="Main navigation">
+        <a href="index.html" aria-current="page">Home</a>
+        <a href="menu.html">Menu</a>
+        <a href="contact.html">Contact us</a>
+      </nav>
+      <button class="sign-in button-sm" disabled title="Sign in is coming soon">Sign in <span class="caption-5">Soon</span></button>
+    </header>
+
+    <main id="main">
+      <section class="hero container" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow caption-3"><span class="small-flower" aria-hidden="true">✳</span> From our kitchen in Windemere</p>
+          <h1 class="heading-1" id="hero-title">A little taste<br />of home.</h1>
+          <p class="hero-description body-3">Home cooked Indian food, made with fresh organic ingredients. From Piryanka’s kitchen to your family’s table.</p>
+          <a class="button button-md" href="menu.html">View our menu <span aria-hidden="true">↗</span></a>
+          <p class="availability caption-2"><span class="status-dot" aria-hidden="true"></span>Pickup &amp; delivery · San Ramon</p>
+        </div>
+        <figure class="hero-photo">
+          <img class="meal-photo" src="assets/home-cooked-meal.jpg" alt="Illustrative Indian meal with golden parotha, dal, vegetables and chutney on a brass plate." width="1122" height="1402" fetchpriority="high" />
+          <div class="photo-label"><img src="assets/flower.svg" alt="" width="32" height="32" /><span class="caption-3">Made at home.<br />Shared with care.</span></div>
+          <figcaption class="caption-5">Illustrative food photo. Our own kitchen photos are coming soon.</figcaption>
+        </figure>
+      </section>
+
+      <section class="benefits container" aria-label="A little about our food">
+        <article><p class="benefit-number caption-3">01 / Our ingredients</p><h2 class="title-1">Fresh &amp; organic</h2><p class="body-6">Good food starts with the ingredients that go into it.</p></article>
+        <article><p class="benefit-number caption-3">02 / Our kitchen</p><h2 class="title-1">Home cooked, always</h2><p class="body-6">Indian food prepared by Piryanka, with a personal touch.</p></article>
+        <article><p class="benefit-number caption-3">03 / Your table</p><h2 class="title-1">A meal for your family</h2><p class="body-6">Pick it up or have it delivered. Everyone is welcome.</p></article>
+      </section>
+
+      <section class="tagline container" aria-labelledby="tagline-title">
+        <img src="assets/flower.svg" alt="" width="40" height="40" loading="lazy" />
+        <p class="eyebrow caption-3">The familiar feeling of a home cooked meal</p>
+        <h2 class="heading-2" id="tagline-title"><span class="tagline-line" data-word-reveal>Rooted in tradition.</span><span class="tagline-line" data-word-reveal>Made for your table.</span></h2>
+      </section>
+
+      <section class="story container" aria-labelledby="story-title">
+        <div><p class="eyebrow caption-3">Meet Piryanka</p><h2 class="heading-2" id="story-title">Home cooking.<br />A warm welcome.</h2></div>
+        <div class="story-copy"><p class="body-3">Priya Parotha begins in Piryanka’s home kitchen in the Windemere community of San Ramon. Home cooked Indian food, shared with families and anyone looking for a taste of home.</p><div class="story-placeholder"><p class="title-3">Every kitchen has a story.</p><p class="body-6">Piryanka’s story and the inspiration behind Priya Parotha are coming soon.</p></div></div>
+      </section>
+
+      <section class="ordering container" aria-labelledby="ordering-title">
+        <div class="section-heading"><p class="eyebrow caption-3">A place at our table</p><h2 class="heading-3" id="ordering-title">Good food. A simple way to order.</h2><p class="body-3">We’re getting our menu and phone ordering ready. Here’s how it will work.</p></div>
+        <ol class="order-steps">
+          <li><span class="step-number caption-3">01</span><h3 class="title-1">Find your favourites</h3><p class="body-6">Explore the dishes on our menu.</p></li>
+          <li><span class="step-number caption-3">02</span><h3 class="title-1">Give us a call</h3><p class="body-6">Place your order over the phone.</p></li>
+          <li><span class="step-number caption-3">03</span><h3 class="title-1">Make it your meal</h3><p class="body-6">Arrange pickup or delivery.</p></li>
+        </ol>
+        <div class="order-note"><div><p class="caption-3">Phone ordering · Coming soon</p><p class="phone title-1" aria-label="Phone number placeholder: 000-000-0000">000-000-0000</p></div><a class="button button-md" href="menu.html">View our menu <span aria-hidden="true">↗</span></a></div>
+      </section>
     </main>
+
+    <footer class="site-footer container">
+      <div><a class="brand title-1" href="index.html"><img src="assets/flower.svg" alt="" width="32" height="32" />Priya Parotha</a><p class="caption-2">From our home to yours. Windemere, San Ramon.</p></div>
+      <nav class="footer-nav body-5" aria-label="Footer navigation"><a href="menu.html">Menu</a><a href="contact.html">Contact us</a></nav>
+      <p class="copyright caption-5">© 2026 Priya Parotha</p>
+    </footer>
   </body>
 </html>
