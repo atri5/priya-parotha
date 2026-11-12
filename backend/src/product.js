@@ -1,6 +1,14 @@
-// Interface scaffold only. Implement after reviewing the product contract and tests.
+export const productFields = ['id', 'name', 'price', 'q_available', 'desc', 'photos'];
+
 export class Product {
   constructor(data) {
-    throw new Error('Product is not implemented yet');
+    for (const field of productFields) {
+      const value = data?.[field];
+      const valid = field === 'photos'
+        ? Array.isArray(value) && value.length > 0
+        : typeof value === 'string' && value.trim().length > 0;
+      if (!valid) throw new TypeError(`${field} must be a nonempty ${field === 'photos' ? 'array' : 'string'}`);
+      this[field] = value;
+    }
   }
 }
