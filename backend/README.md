@@ -1,5 +1,26 @@
 # Backend
 
-This folder is reserved for the backend application and API.
+Test-first scaffolding for the product model and API. The agreed requirements are saved in [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md).
 
-No backend framework or server is configured yet. The frontend runs independently as a static website.
+## Run tests
+
+From the repository root:
+
+```sh
+cd backend
+npm test
+```
+
+Node's built-in test runner requires no third-party dependencies or installation step.
+
+The tests are active and intentionally fail against the unimplemented interfaces in `src/`. Product validation and CRUD functionality will be implemented separately.
+
+## Layout
+
+- `src/product.js` — Product class interface placeholder
+- `src/product-api.js` — create, edit, and delete interface placeholders
+- `test/product.test.js` — product field and validation tests
+- `test/product-api.test.js` — API validation, ID, partial edit, and deletion tests
+- `test-support/` — shared test fixtures
+
+No HTTP server or persistence is configured. The frontend still runs independently as a static website.

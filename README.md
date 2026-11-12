@@ -20,4 +20,4 @@ Deploy the `frontend/` folder to a static hosting service. Use `frontend` as the
 
 - `frontend/index.html` — page content and metadata
 - `frontend/styles.css` — responsive page styles
-- `backend/` — placeholder for the future backend; no server is configured yet
+- `backend/` — product contract, unit tests, and unimplemented backend interfaces; see [backend/README.md](backend/README.md)
