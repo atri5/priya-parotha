@@ -4,19 +4,20 @@ A minimal, responsive hello-world website built with plain HTML and CSS. No depe
 
 ## Preview locally
 
-Open `index.html` directly in your browser, or run a local server from this folder:
+Open `frontend/index.html` directly in your browser, or run a local server from the repository root:
 
 ```sh
-python3 -m http.server 8000
+python3 -m http.server 8000 --directory frontend
 ```
 
 Then open <http://localhost:8000>.
 
 ## Hosting
 
-Deploy this folder to a static hosting service. Use the repository root (`.`) as the publish directory and leave the build command empty. The entry point is `index.html`.
+Deploy the `frontend/` folder to a static hosting service. Use `frontend` as the publish directory and leave the build command empty. The entry point is `index.html` inside that folder.
 
 ## Files
 
-- `index.html` — page content and metadata
-- `styles.css` — responsive page styles
+- `frontend/index.html` — page content and metadata
+- `frontend/styles.css` — responsive page styles
+- `backend/` — placeholder for the future backend; no server is configured yet
