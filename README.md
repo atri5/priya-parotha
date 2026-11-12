@@ -14,6 +14,10 @@ Then open <http://localhost:8000>.
 
 ## Hosting
 
+Live site: [priya-parotha.priya-parotha.workers.dev](https://priya-parotha.priya-parotha.workers.dev)
+
+Read-only sample product API: [/api/products](https://priya-parotha.priya-parotha.workers.dev/api/products)
+
 Cloudflare Workers Static Assets hosts the frontend and read-only product API; Neon Free hosts the online database. See [backend/README.md](backend/README.md) for development/deployment and [neon/README.md](neon/README.md) for the schema. The menu/contact placeholders and phone ordering setup remain unchanged.
 
 The `frontend/` folder can also be hosted by itself on a static service, with no build command; doing so does not include the product API.

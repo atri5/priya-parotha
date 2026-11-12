@@ -56,6 +56,8 @@ Keep the Neon connection in ignored `.env` for backend scripts and `.dev.vars` f
 
 The online schema and optional sample import are described in [../neon/README.md](../neon/README.md). The initial database is on Neon Free; no paid Cloudflare subscription is required for this small deployment. No custom domain is purchased or configured.
 
+Live deployment: https://priya-parotha.priya-parotha.workers.dev. Product reads are at `/api/products` and `/api/products/:id`; POST, PATCH, and DELETE return 405. Initial application source: `31a95b3`; Cloudflare version: `adf7ddf4-2788-445a-a9d4-6a1d74b760c7`.
+
 ## Layout
 
 - `data/products.csv` — five sample products for local queries, including one out of stock; prices, quantities, and photo URLs are illustrative. `photos` contains a JSON array inside each CSV cell. Parse it as JSON; keep other fields as strings.
