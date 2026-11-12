@@ -43,7 +43,7 @@ The two existing tests cover core functionality and representative validation us
 
 ## Online storage and hosting
 
-Neon Free is the selected online database. `../neon/schema.sql` defines `public.products` with exactly the six fields above and `id` as its primary key. IDs are text with a generated UUID string as the database default. Photos use a nonempty JSON array; price and quantity remain text. The intended initial scale is 20–30 products. `../neon/project.json` records the created project without credentials.
+Neon Free is the selected online database. `../../neon/schema.sql` defines `public.products` with exactly the six fields above and `id` as its primary key. IDs are text with a generated UUID string as the database default. Photos use a nonempty JSON array; price and quantity remain text. The intended initial scale is 20–30 products. `../../neon/project.json` records the created project without credentials.
 
 Cloudflare serves the frontend and public `GET /api/products` and `GET /api/products/:id` routes. No public product writes are mounted. Database credentials stay in server-only secrets. The Neon schema grants general database roles read access only; the trusted database owner performs backend writes. Supabase migrations are retained as historical alternatives, not applied to Neon.
 

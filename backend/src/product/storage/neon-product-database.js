@@ -1,5 +1,5 @@
 import { neon } from '@neondatabase/serverless';
-import { Product, productFields } from './product.js';
+import { Product, productFields } from '../product.js';
 import { ProductDatabase } from './product-database.js';
 
 export class NeonProductDatabase extends ProductDatabase {

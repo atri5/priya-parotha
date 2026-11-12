@@ -1,8 +1,8 @@
 # Backend
 
-Product CRUD with Neon online storage and a CSV adapter for local fixtures. Requirements are saved in [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md).
+Product CRUD with Neon online storage and a CSV adapter for local fixtures. Requirements are saved in [docs/PRODUCT_CONTRACT.md](docs/PRODUCT_CONTRACT.md).
 
-The Cloudflare Worker serves the website and the two public GET routes documented in [src/product/API_SPEC.md](src/product/API_SPEC.md). Create, edit, and delete remain backend functions with no public HTTP routes.
+The Cloudflare Worker serves the website and the two public GET routes documented in [docs/API_SPEC.md](docs/API_SPEC.md). Create, edit, and delete remain backend functions with no public HTTP routes.
 
 ## Run tests
 
@@ -22,7 +22,7 @@ From a backend JavaScript module:
 
 ```js
 import { createProductApi } from './src/product/product-api.js';
-import { CsvProductDatabase } from './src/product/csv-product-database.js';
+import { CsvProductDatabase } from './src/product/storage/csv-product-database.js';
 
 const api = createProductApi(); // Defaults to data/products.csv.
 const products = await api.getProducts();
@@ -32,7 +32,7 @@ const product = await api.getProduct(products[0].id);
 const customApi = createProductApi(new CsvProductDatabase('/absolute/path/products.csv'));
 ```
 
-For online storage, pass `new NeonProductDatabase(process.env.DATABASE_URL)` from `./src/product/neon-product-database.js` instead. The database connection is server-only.
+For online storage, pass `new NeonProductDatabase(process.env.DATABASE_URL)` from `./src/product/storage/neon-product-database.js` instead. The database connection is server-only.
 
 `createProduct(data)`, `editProduct(id, changes)`, and `deleteProduct(id)` persist to that file. Creation generates IDs; edits accept partial changes and preserve the ID. Set `PRODUCT_CSV_PATH` to change the default path.
 
@@ -60,12 +60,14 @@ Live deployment: https://priya-parotha.priya-parotha.workers.dev. Product reads 
 
 ## Layout
 
+- `docs/` — product contract and HTTP API specification
+- `scripts/` — database setup and optional sample import
 - `data/products.csv` — five sample products for local queries, including one out of stock; prices, quantities, and photo URLs are illustrative. `photos` contains a JSON array inside each CSV cell. Parse it as JSON; keep other fields as strings.
 - `src/product/product.js` — Product fields and validation
 - `src/product/product-api.js` — read, create, edit, and delete functions
-- `src/product/product-database.js` — storage interface base class
-- `src/product/csv-product-database.js` — CSV storage child class
-- `src/product/neon-product-database.js` — hosted PostgreSQL storage child class
+- `src/product/storage/product-database.js` — storage interface base class
+- `src/product/storage/csv-product-database.js` — CSV storage child class
+- `src/product/storage/neon-product-database.js` — hosted PostgreSQL storage child class
 - `src/worker.js` — public read-only API and static asset handling
 - `test/product/product.test.js` — product field and validation tests
 - `test/product/product-api.test.js` — API validation, ID, partial edit, and deletion tests

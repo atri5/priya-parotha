@@ -1,5 +1,5 @@
 import { createProductApi } from './product/product-api.js';
-import { NeonProductDatabase } from './product/neon-product-database.js';
+import { NeonProductDatabase } from './product/storage/neon-product-database.js';
 
 const errorResponse = (error, status, headers) => Response.json({ error }, { status, headers });
 

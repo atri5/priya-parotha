@@ -3,11 +3,11 @@ import { readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'csv-parse/sync';
 import { stringify } from 'csv-stringify/sync';
-import { Product, productFields } from './product.js';
+import { Product, productFields } from '../product.js';
 import { ProductDatabase } from './product-database.js';
 
 export class CsvProductDatabase extends ProductDatabase {
-  constructor(filePath = process.env.PRODUCT_CSV_PATH || fileURLToPath(new URL('../../data/products.csv', import.meta.url))) {
+  constructor(filePath = process.env.PRODUCT_CSV_PATH || fileURLToPath(new URL('../../../data/products.csv', import.meta.url))) {
     super();
     this.filePath = filePath;
   }

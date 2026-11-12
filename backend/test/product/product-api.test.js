@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { createProductApi } from '../../src/product/product-api.js';
-import { CsvProductDatabase } from '../../src/product/csv-product-database.js';
-import { ProductDatabase } from '../../src/product/product-database.js';
+import { CsvProductDatabase } from '../../src/product/storage/csv-product-database.js';
+import { ProductDatabase } from '../../src/product/storage/product-database.js';
 import { productData } from '../../test-support/product/product-fixtures.js';
 
 test('Product API queries CSV, creates unique IDs, partially edits, deletes, and validates input', async (t) => {

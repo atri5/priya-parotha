@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { neon } from '@neondatabase/serverless';
-import { CsvProductDatabase } from '../src/product/csv-product-database.js';
+import { CsvProductDatabase } from '../src/product/storage/csv-product-database.js';
 
 if (!process.env.DATABASE_URL) throw new Error('Set DATABASE_URL in backend/.env before database setup');
 const sql = neon(process.env.DATABASE_URL);

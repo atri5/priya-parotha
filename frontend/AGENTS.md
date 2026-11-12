@@ -5,4 +5,4 @@
 - Style: warm, homely, traditional Indian. Use the local Manrope font, cream, terracotta, and deep green.
 - Home is the designed page. Menu and Contact us are separate placeholder pages; sign-in stays disabled. Do not add ordering or account functionality until requested.
 - `000-000-0000` is a placeholder, never a working telephone link. Food imagery is temporary and illustrative. Priyanka’s inspiration/story is pending; do not invent it or customer reviews.
-- Remaining work is tracked in `TODO.md`. No frontend test suite is needed for basic visual edits; verify links, mobile layout, and accessibility directly.
+- Remaining work is tracked in `docs/TODO.md`. No frontend test suite is needed for basic visual edits; verify links, mobile layout, and accessibility directly.

@@ -25,10 +25,10 @@ The `frontend/` folder can also be hosted by itself on a static service, with no
 ## Files
 
 - `frontend/index.html` — page content and metadata
-- `frontend/styles.css` — responsive page styles
-- `frontend/main.js` — reduced-motion-aware tagline reveal
+- `frontend/assets/css/styles.css` — responsive page styles
+- `frontend/assets/js/main.js` — reduced-motion-aware tagline reveal
 - `frontend/menu.html`, `frontend/contact.html` — separate placeholder pages
-- `frontend/assets/` — local images, font, and favicon
-- `frontend/TODO.md` — remaining content and website work, including customer reviews
+- `frontend/assets/` — styles, scripts, images, and fonts grouped by type
+- `frontend/docs/TODO.md` — remaining content and website work, including customer reviews
 - `backend/` — product functions, CSV/Neon adapters, Cloudflare configuration, and two unit tests
 - `neon/` — online product schema and non-secret project metadata

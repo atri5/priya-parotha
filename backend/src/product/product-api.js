@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { CsvProductDatabase } from './csv-product-database.js';
+import { CsvProductDatabase } from './storage/csv-product-database.js';
 import { Product, productFields } from './product.js';
 
 function requireId(id) {
