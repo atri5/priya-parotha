@@ -1,0 +1,56 @@
+:root {
+  color-scheme: light;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #2c2924;
+  background: #faf7f0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100svh;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+}
+
+main {
+  width: min(100%, 48rem);
+  padding-block: 3rem;
+}
+
+.eyebrow {
+  margin: 0 0 2rem;
+  color: #925019;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(3rem, 10vw, 6.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.06em;
+}
+
+h1 span {
+  color: #b45724;
+}
+
+.intro {
+  margin: 1.5rem 0 0;
+  font-size: clamp(1.15rem, 3vw, 1.5rem);
+  line-height: 1.5;
+}
+
+.note {
+  margin: 0.75rem 0 0;
+  color: #696156;
+  line-height: 1.6;
+}
