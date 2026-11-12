@@ -1,8 +1,8 @@
 # Backend
 
-Product CRUD backed by a configurable CSV database. Requirements are saved in [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md).
+Product CRUD with Neon online storage and a CSV adapter for local fixtures. Requirements are saved in [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md).
 
-The proposed frontend-facing HTTP shell is documented in [src/product/API_SPEC.md](src/product/API_SPEC.md). It maps routes to the existing functions; no HTTP server is implemented yet.
+The Cloudflare Worker serves the website and the two public GET routes documented in [src/product/API_SPEC.md](src/product/API_SPEC.md). Create, edit, and delete remain backend functions with no public HTTP routes.
 
 ## Run tests
 
@@ -32,11 +32,29 @@ const product = await api.getProduct(products[0].id);
 const customApi = createProductApi(new CsvProductDatabase('/absolute/path/products.csv'));
 ```
 
+For online storage, pass `new NeonProductDatabase(process.env.DATABASE_URL)` from `./src/product/neon-product-database.js` instead. The database connection is server-only.
+
 `createProduct(data)`, `editProduct(id, changes)`, and `deleteProduct(id)` persist to that file. Creation generates IDs; edits accept partial changes and preserve the ID. Set `PRODUCT_CSV_PATH` to change the default path.
 
 To add another database, extend `ProductDatabase` with `list`, `get`, `create`, `update`, and `delete`, then pass its instance to `createProductApi`. No API changes are needed.
 
 The CSV adapter is intended for one backend process with 20–30 products. Use separate working copies when experimenting with writes.
+
+## Cloudflare development and deployment
+
+Use a supported Node LTS release: Node 22.23+, 24.22+, or 26.12+. `.nvmrc` selects Node 22. The machine's older Node 23 does not support this Cloudflare toolchain; it can run it with `npx --yes --package=node@22 -- npm run build` without changing the global Node installation.
+
+`cloudflare.config.ts` uses the official `cf` CLI and Workers Static Assets. `vite.config.ts` packages the existing frontend without publishing internal Markdown notes. The frontend files remain buildless when served on their own.
+
+```sh
+npm run dev
+npm run build
+npm run deploy -- --secrets-file .env
+```
+
+Keep the Neon connection in ignored `.env` for backend scripts and `.dev.vars` for local Worker development. Deployment uploads it as the Worker's `DATABASE_URL` secret. Never put it in the frontend, command arguments, or Git. Secrets files should contain only values intended for that Worker.
+
+The online schema and optional sample import are described in [../neon/README.md](../neon/README.md). The initial database is on Neon Free; no paid Cloudflare subscription is required for this small deployment. No custom domain is purchased or configured.
 
 ## Layout
 
@@ -45,8 +63,10 @@ The CSV adapter is intended for one backend process with 20–30 products. Use s
 - `src/product/product-api.js` — read, create, edit, and delete functions
 - `src/product/product-database.js` — storage interface base class
 - `src/product/csv-product-database.js` — CSV storage child class
+- `src/product/neon-product-database.js` — hosted PostgreSQL storage child class
+- `src/worker.js` — public read-only API and static asset handling
 - `test/product/product.test.js` — product field and validation tests
 - `test/product/product-api.test.js` — API validation, ID, partial edit, and deletion tests
 - `test-support/product/` — shared test fixtures
 
-Supabase table migrations are in [../supabase/README.md](../supabase/README.md); a Supabase adapter is deferred. No HTTP endpoints are exposed, and the frontend still runs independently.
+The old Supabase migrations are retained as alternatives; production uses Neon. The menu and contact pages remain placeholders and do not query the API yet.

@@ -4,10 +4,23 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "dev": "cf dev",
+    "build": "cf build",
+    "deploy": "cf deploy",
+    "db:setup": "node --env-file-if-exists=.env scripts/setup-neon.js"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
     "csv-parse": "^7.0.3",
     "csv-stringify": "^6.9.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^2.0.0-beta.v.16",
+    "cf": "^1.0.0-beta.31",
+    "vite": "^8.3.8"
+  },
+  "engines": {
+    "node": "^22.23.0 || ^24.22.0 || ^26.12.0"
   }
 }

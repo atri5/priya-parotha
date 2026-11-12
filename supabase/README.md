@@ -1,5 +1,7 @@
 # Database
 
+These migrations are retained as an alternative. The selected online database is now Neon; use [../neon/README.md](../neon/README.md) for the current setup.
+
 Run the SQL files in `migrations/` in filename order in your Supabase project's SQL Editor, once each. The first creates `public.products`; the second configures public read-only access.
 
 - `id`: text primary key, with a generated UUID string when omitted.

@@ -1,6 +1,6 @@
 # Product backend contract
 
-This file preserves the agreed backend requirements. The Product model and API use configurable CSV storage through a database interface.
+This file preserves the agreed backend requirements. The Product model and API use a database interface with CSV and hosted Neon implementations.
 
 ## Product fields
 
@@ -31,6 +31,8 @@ The user's `''` and `[]` examples describe the field types, not valid default va
 
 The two existing tests cover core functionality and representative validation using a temporary CSV copy.
 
+`NeonProductDatabase(connectionString)` implements the same interface over hosted PostgreSQL. It validates merged Products before updates, uses parameterized queries, and writes only changed columns to preserve unrelated concurrent edits. The public Cloudflare Worker injects this adapter into the existing product functions.
+
 - `new Product(data)` accepts all six fields; the API assigns `id` before constructing a Product.
 - `createProductApi(database)` accepts a storage child-class instance and defaults to the configured CSV. API instances using the same file share persisted products.
 - Creation and editing return the resulting Product. Deletion has no required return value.
@@ -39,10 +41,10 @@ The two existing tests cover core functionality and representative validation us
 - Validation errors identify fields in their messages; no custom error class or HTTP status is prescribed.
 - Edits reject unknown fields and changes to `id`.
 
-## Deliberately deferred
+## Online storage and hosting
 
-The Supabase schema is defined in `../supabase/migrations/20261111000000_create_products.sql`: `public.products` has exactly the six fields above, with `id` as its primary key. IDs are stored as text with a generated UUID string as the database default. Photos use a nonempty JSON array; price and quantity remain text. The intended initial scale is 20–30 products.
+Neon Free is the selected online database. `../neon/schema.sql` defines `public.products` with exactly the six fields above and `id` as its primary key. IDs are text with a generated UUID string as the database default. Photos use a nonempty JSON array; price and quantity remain text. The intended initial scale is 20–30 products. `../neon/project.json` records the created project without credentials.
 
-The access migration `../supabase/migrations/20261111000001_products_read_only.sql` allows online visitors and signed-in users to read products only. Product writes are reserved for the trusted backend using server-only service credentials. Never expose those credentials to the frontend or leave future backend write endpoints unauthenticated.
+Cloudflare serves the frontend and public `GET /api/products` and `GET /api/products/:id` routes. No public product writes are mounted. Database credentials stay in server-only secrets. The Neon schema grants general database roles read access only; the trusted database owner performs backend writes. Supabase migrations are retained as historical alternatives, not applied to Neon.
 
-There is no HTTP server, authentication, photo upload, live Supabase adapter, or deployed backend. Both unit tests should pass against the CSV-backed implementation.
+User authentication, photo uploads, public write endpoints, and menu-page integration remain deferred. Both unit tests should pass against the CSV-backed implementation; online storage is also checked directly against Neon.

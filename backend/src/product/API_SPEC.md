@@ -1,6 +1,6 @@
 # Product HTTP API plan
 
-Proposed specification only. No HTTP routes or frontend integration are implemented by this document. Scope: a thin JSON wrapper over the existing product functions for the current 20–30 product catalog.
+The Cloudflare Worker implements the two public GET routes below as a thin JSON wrapper over the existing product functions, using Neon storage. Write routes remain proposed and unmounted. Scope: the current 20–30 product catalog.
 
 ## Routes
 
@@ -34,8 +34,8 @@ PATCH sends only changes, for example `{"price":"6.00"}`. POST and PATCH accept 
 
 - The public frontend uses only GET routes.
 - Writes are for trusted backend callers only. Do not mount write routes on the public server until backend-only authorization is configured; browser login alone must not permit product edits.
-- Supabase service credentials and any backend authorization secrets stay on the server. CORS is not authorization.
-- No authentication system is added as part of this shell specification. Database grants and row-level policies remain as defined in the Supabase migrations.
+- Neon database credentials and any backend authorization secrets stay on the server. CORS is not authorization.
+- No user authentication system is added. Database grants and row-level policies are defined in `neon/schema.sql`.
 
 ## Errors
 
@@ -54,9 +54,9 @@ Distinguish request parsing errors from storage parsing failures. Never include 
 
 ## Implementation outline
 
-1. Add `backend/src/server.js` to construct one configured `createProductApi()` instance and register routes. The existing CSV default and `PRODUCT_CSV_PATH` configuration stay in the product layer.
-2. Add `backend/src/product/product-routes.js` to match routes, decode IDs, parse JSON, call the corresponding function, and serialize results/errors. It must not read CSV or call Supabase directly.
-3. Point frontend requests at `/api/products` when served on the same origin. For separate hosting, configure a public API base URL and allow the exact frontend origin through CORS; no browser secret is needed for reads.
+1. `backend/src/worker.js` serves assets and matches the two GET routes, decoding IDs and serializing results/errors. Unsupported methods receive 405 without calling product functions.
+2. The Worker constructs `createProductApi(new NeonProductDatabase(env.DATABASE_URL))`. It does not read CSV or implement product validation rules itself. Missing database configuration returns 503; unexpected database failures return a generic 500.
+3. Future menu-page requests can use `/api/products` on the same origin. The current frontend remains a homepage with separate menu/contact placeholders.
 
 Frontend read example:
 
