@@ -2,6 +2,8 @@
 
 Product CRUD backed by a configurable CSV database. Requirements are saved in [PRODUCT_CONTRACT.md](PRODUCT_CONTRACT.md).
 
+The proposed frontend-facing HTTP shell is documented in [src/product/API_SPEC.md](src/product/API_SPEC.md). It maps routes to the existing functions; no HTTP server is implemented yet.
+
 ## Run tests
 
 From the repository root:
