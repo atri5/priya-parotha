@@ -3,16 +3,16 @@ import { copyFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { createProductApi } from '../src/product-api.js';
-import { CsvProductDatabase } from '../src/csv-product-database.js';
-import { ProductDatabase } from '../src/product-database.js';
-import { productData } from '../test-support/product-fixtures.js';
+import { createProductApi } from '../../src/product/product-api.js';
+import { CsvProductDatabase } from '../../src/product/csv-product-database.js';
+import { ProductDatabase } from '../../src/product/product-database.js';
+import { productData } from '../../test-support/product/product-fixtures.js';
 
 test('Product API queries CSV, creates unique IDs, partially edits, deletes, and validates input', async (t) => {
   const directory = mkdtempSync(join(tmpdir(), 'priya-products-'));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   const filePath = join(directory, 'products.csv');
-  copyFileSync(new URL('../data/products.csv', import.meta.url), filePath);
+  copyFileSync(new URL('../../data/products.csv', import.meta.url), filePath);
   const database = new CsvProductDatabase(filePath);
   assert.ok(database instanceof ProductDatabase);
   const api = createProductApi(database);

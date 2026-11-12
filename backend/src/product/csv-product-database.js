@@ -7,7 +7,7 @@ import { Product, productFields } from './product.js';
 import { ProductDatabase } from './product-database.js';
 
 export class CsvProductDatabase extends ProductDatabase {
-  constructor(filePath = process.env.PRODUCT_CSV_PATH || fileURLToPath(new URL('../data/products.csv', import.meta.url))) {
+  constructor(filePath = process.env.PRODUCT_CSV_PATH || fileURLToPath(new URL('../../data/products.csv', import.meta.url))) {
     super();
     this.filePath = filePath;
   }

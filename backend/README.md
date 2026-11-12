@@ -19,8 +19,8 @@ The two tests use Node's built-in runner and a temporary CSV copy. CSV parsing a
 From a backend JavaScript module:
 
 ```js
-import { createProductApi } from './src/product-api.js';
-import { CsvProductDatabase } from './src/csv-product-database.js';
+import { createProductApi } from './src/product/product-api.js';
+import { CsvProductDatabase } from './src/product/csv-product-database.js';
 
 const api = createProductApi(); // Defaults to data/products.csv.
 const products = await api.getProducts();
@@ -39,12 +39,12 @@ The CSV adapter is intended for one backend process with 20–30 products. Use s
 ## Layout
 
 - `data/products.csv` — five sample products for local queries, including one out of stock; prices, quantities, and photo URLs are illustrative. `photos` contains a JSON array inside each CSV cell. Parse it as JSON; keep other fields as strings.
-- `src/product.js` — Product fields and validation
-- `src/product-api.js` — read, create, edit, and delete functions
-- `src/product-database.js` — storage interface base class
-- `src/csv-product-database.js` — CSV storage child class
-- `test/product.test.js` — product field and validation tests
-- `test/product-api.test.js` — API validation, ID, partial edit, and deletion tests
-- `test-support/` — shared test fixtures
+- `src/product/product.js` — Product fields and validation
+- `src/product/product-api.js` — read, create, edit, and delete functions
+- `src/product/product-database.js` — storage interface base class
+- `src/product/csv-product-database.js` — CSV storage child class
+- `test/product/product.test.js` — product field and validation tests
+- `test/product/product-api.test.js` — API validation, ID, partial edit, and deletion tests
+- `test-support/product/` — shared test fixtures
 
 Supabase table migrations are in [../supabase/README.md](../supabase/README.md); a Supabase adapter is deferred. No HTTP endpoints are exposed, and the frontend still runs independently.

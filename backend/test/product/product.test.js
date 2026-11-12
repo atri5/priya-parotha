@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { Product } from '../src/product.js';
-import { productData } from '../test-support/product-fixtures.js';
+import { Product } from '../../src/product/product.js';
+import { productData } from '../../test-support/product/product-fixtures.js';
 
 test('Product stores its fields and rejects missing or empty required values', () => {
   const data = { id: 'product-1', ...productData() };
