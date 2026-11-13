@@ -2,7 +2,7 @@
 
 Product CRUD with Neon online storage and a CSV adapter for local fixtures. Requirements are saved in [docs/PRODUCT_CONTRACT.md](docs/PRODUCT_CONTRACT.md).
 
-The Cloudflare Worker serves the website and the two public GET routes documented in [docs/API_SPEC.md](docs/API_SPEC.md). Create, edit, and delete remain backend functions with no public HTTP routes.
+The Cloudflare Worker serves the website and the public GET routes documented in [docs/API_SPEC.md](docs/API_SPEC.md). Local development supports creation through POST; deployed create, edit, and delete routes remain disabled.
 
 ## Run tests
 
@@ -74,3 +74,9 @@ Live deployment: https://priya-parotha.priya-parotha.workers.dev. Product reads 
 - `test-support/product/` — shared test fixtures
 
 The old Supabase migrations are retained as alternatives; production uses Neon. The menu and contact pages remain placeholders and do not query the API yet.
+
+The dashboard now renders products from `/api/products` and loads category suggestions from `/api/tags`. Run the Worker development server for dashboard testing; the standalone Python frontend server does not provide API routes. Create and Edit save to Neon when using the local Worker; the Products page stages edits and Publish changes for its Save changes button. Delete remains deferred.
+
+Local creation is enabled only in development mode and accepts same-origin requests on loopback. Uploaded photos persist in local R2 storage under ignored Cloudflare state; do not remove this state if you want to keep those images. Deploying the application does not upload these images. Production builds disable creation and omit the local image binding.
+
+`npm run db:setup` also installs `neon/apply-product-edits.sql` for atomic batch edits and adds the `published` boolean. No authentication bypass is enabled in production.
