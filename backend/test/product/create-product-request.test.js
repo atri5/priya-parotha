@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import worker from '../../src/worker.js';
 import { NeonProductDatabase } from '../../src/product/storage/neon-product-database.js';
+import { AuthDatabase } from '../../src/auth/storage.js';
 
 // Exercise the real request handler with isolated database and image storage.
 test('local creation saves fields and images, validates input, and rejects deployed or cross-origin writes', async t => {
@@ -11,11 +12,12 @@ test('local creation saves fields and images, validates input, and rejects deplo
     PRODUCT_IMAGES: { put: async (key, value) => images.set(key, value), delete: async keys => keys.forEach(key => images.delete(key)) },
   };
   t.mock.method(NeonProductDatabase.prototype, 'create', async product => product);
+  t.mock.method(AuthDatabase.prototype, 'getSession', async () => ({ id: 'admin-user', role: 'admin' }));
   const request = (quantity = '0', origin = 'http://localhost:5173', withImage = true) => {
     const form = new FormData();
     for (const [key, value] of Object.entries({ name: 'Test product', desc: 'Test description', price: '5.50', q_available: quantity, tags: JSON.stringify(['Lunch', 'Sides']) })) form.set(key, value);
     if (withImage) form.append('photos', new Blob([Uint8Array.from([137,80,78,71,13,10,26,10])], { type: 'image/png' }), 'test.png');
-    return new Request('http://localhost:5173/api/products', { method: 'POST', headers: { Origin: origin, 'X-Product-Request': 'create' }, body: form });
+    return new Request('http://localhost:5173/api/products', { method: 'POST', headers: { Origin: origin, 'X-Product-Request': 'create', Cookie: `priya_session=${'a'.repeat(43)}` }, body: form });
   };
   assert.equal((await worker.fetch(request(), { ...env, LOCAL_PRODUCT_WRITES: 'false' })).status, 403);
   assert.equal((await worker.fetch(request('0', 'https://other.example'), env)).status, 403);

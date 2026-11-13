@@ -18,3 +18,9 @@ The second command optionally imports the sample CSV without overwriting existin
 Production uses `NeonProductDatabase`; `CsvProductDatabase` remains available for local tests. Database credentials are stored only in ignored backend files and Cloudflare secrets.
 
 The tags-array migration has been applied, preserving existing categories. The dashboard reads Neon through the local Worker: run `npm run dev` from `backend`, then open `/dashboard.html#manage-products` at the displayed URL. A standalone static server cannot serve the API. Local creation and batch edits are supported; deployed writes remain disabled.
+
+## Accounts
+
+The SQL files in `migrations/` add private `users`, `password_credentials`, `oauth_accounts`, `sessions`, and `oauth_states` tables, then enable the supported `pgcrypto` extension for bcrypt password hashing and verification. Users default to `customer`; `admin` is the only other role. Run `npm run db:accounts` from `backend/` to apply the files in order, each in a transaction. These initial migrations are safe to rerun and create no users.
+
+Account/session tables have row level security enabled and no public grants or policies. Access is backend-only. Passwords are hashed in Neon so the Cloudflare Worker can remain on its Free plan; session tokens are stored only as SHA-256 digests. See [the account contract](../backend/docs/ACCOUNT_CONTRACT.md) for constraints, trusted admin promotion, authentication behavior, and Google setup.

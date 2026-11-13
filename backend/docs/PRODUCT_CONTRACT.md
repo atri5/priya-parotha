@@ -38,13 +38,13 @@ Neon inserts, reads, and updates carry the array directly. Array changes are par
 
 ## Dashboard writes
 
-Local creation uses a multipart form. `tags` is encoded as a JSON array string; omitted means `[]`. Images are optional: no upload produces the default `/assets/images/flower.svg` reference. Product data saves to Neon; uploaded image files persist in the local R2 emulator. Deployed image storage and admin authentication remain pending.
+Local creation uses a multipart form. `tags` is encoded as a JSON array string; omitted means `[]`. Images are optional: no upload produces the default `/assets/images/flower.svg` reference. Product data saves to Neon; uploaded image files persist in the local R2 emulator. Admin sessions are required for dashboard access and product mutations. Deployed image storage and enabling deployed writes remain pending.
 
 Inline edits stage all field and image changes until Save changes. Undo restores loaded values. Local `PATCH /api/products` receives multipart `edits`, a JSON array of `{ before, changes }`, plus optional `photos:<product-id>` files. `before` is the full loaded product snapshot. Changes allow all editable fields. Existing photos may be kept or removed; new photos must be uploaded. Removing all photos restores the default.
 
 `NeonProductDatabase.updateBatch` uses `neon/apply-product-edits.sql`: rows are locked in ID order and compared with the snapshots. A missing or changed row raises a conflict and rolls back the entire batch. New uploads are cleaned up on failure; previously stored images are retained. The SQL function uses caller privileges and is not executable by PUBLIC.
 
-Local writes require development mode, a loopback hostname, exact Origin, and the dashboard request header. Production writes remain disabled. Publication state persists; public menu integration remains deferred.
+Local writes require a valid admin session, development mode, a loopback hostname, exact Origin, and the dashboard request header. Production writes remain disabled. Publication state persists; public menu integration remains deferred.
 
 ## Review hardening
 
@@ -52,4 +52,6 @@ Photo references must be an array of 1–10 strings, each at most 2048 character
 
 CSV mutations acquire an atomic lock directory beside the canonical CSV path before reading. A competing writer fails with a busy error instead of overwriting another update; validation errors release the lock. This remains a local fixture adapter, not distributed storage. If a writer is forcibly terminated, remove its stale `.lock` directory only after confirming no writer remains active; locks are never automatically stolen. Neon is the deployed storage adapter.
 
-The Worker has one explicit `authorizeProductWrite` boundary for creation and batch updates. Internal product functions are trusted server code, not unauthenticated HTTP endpoints. The guard requires the local-write flag, loopback host, exact Origin, and operation header; it does not pretend to provide deployed admin authentication. Deployed writes remain denied until that separate feature is implemented.
+The Worker's `authorizeAdmin` boundary checks the database session and current role before any product mutation, dashboard page/asset, or `/api/admin/*` request. Internal product functions are trusted server code, not unauthenticated HTTP endpoints. Creation and batch updates also use `authorizeProductWrite` to require the local-write flag, loopback host, exact Origin, and operation header. Deployed writes remain denied by this additional feature flag even for admins.
+
+User authentication is documented separately in `ACCOUNT_CONTRACT.md`; enabling signed-in sessions does not enable deployed product writes.
