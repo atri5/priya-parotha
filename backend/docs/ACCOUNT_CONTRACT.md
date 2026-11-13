@@ -28,15 +28,17 @@ Google identity lookup uses `(provider, provider_user_id)`, with the latter take
 
 All five tables have row level security enabled, no public policies, and no `PUBLIC` grants. Only the trusted database owner/backend may access them. The Worker verifies a real, unexpired database session and the user's current `admin` role before serving the dashboard, its JavaScript/CSS, or accepting product mutations. This check also applies on localhost. Client-supplied roles, headers, email addresses, and local storage do not authorize access. Deployed product writes remain disabled by the development-only feature flag; local admin writes additionally require loopback, same-origin, and operation-header checks.
 
-Signed-in admins see an Admin tag beside their email and a Dashboard link above Sign out. Customers and visitors do not see these controls. Every request runs through the Worker before static asset serving. Dashboard paths, extensionless/trailing-slash aliases, and dashboard asset paths are checked after bounded URL decoding and path normalization. Unauthorized dashboard navigation redirects to the homepage with an admin sign-in message; protected asset/API requests return 401 for missing/invalid sessions or 403 for customers. Authentication/storage failures return 503 and never serve protected content. `/api/admin/*` is reserved behind the same guard; no management endpoints are implemented there yet.
+Signed-in admins see an Admin tag beside their email and a Dashboard link above Sign out. Customers and visitors do not see these controls. Every request except an exact list of public static files (`cloudflare.config.ts`) runs through the Worker before static asset serving. Dashboard paths, extensionless/trailing-slash aliases, and dashboard asset paths are checked after bounded URL decoding and path normalization. Unauthorized dashboard navigation redirects to the homepage with an admin sign-in message; protected asset/API requests return 401 for missing/invalid sessions or 403 for customers. Authentication/storage failures return 503 and never serve protected content. `/api/admin/*` is reserved behind the same guard; no management endpoints are implemented there yet.
 
 Protected responses use `Cache-Control: private, no-store` and `Vary: Cookie`, with browser frame embedding disabled. The dashboard hides a history-cached document when leaving and rechecks the session before showing a restored page. Session revocation, expiry, and role changes affect the next protected request without signing in again. The existing public product/tag reads remain public; product creation and changes always require an admin session. Use the Worker development server or Worker deployment for these protections; a standalone static-file server cannot enforce backend authorization.
 
-To promote an existing, verified account, a database administrator can run this with its actual user ID:
+To promote a verified account, a database administrator can run this with its actual user ID. It changes nothing unless the email is verified and returns the promoted row, so an empty result means it was refused:
 
 ```sql
-update public.users set role = 'admin' where id = '<registered-user-id>';
+update public.users set role = 'admin' where id = '<registered-user-id>' and email_verified returning id, email, role;
 ```
+
+Email/password accounts stay unverified until email verification is implemented, so today only Google-created accounts qualify. An administrator who has confirmed ownership of a password account out of band can set `email_verified = true` on it first.
 
 ## Sessions and routes
 
