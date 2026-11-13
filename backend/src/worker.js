@@ -11,9 +11,8 @@ export default {
     const { pathname } = url;
     const batchEdit = request.method === 'PATCH' && pathname === '/api/products';
     if (batchEdit || request.method === 'POST' && /^\/api\/products\/?$/.test(pathname)) {
-      const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
-      if (env.LOCAL_PRODUCT_WRITES !== 'true' || !local) return errorResponse('Product creation is not enabled on this server', 403);
-      if (request.headers.get('Origin') !== url.origin || request.headers.get('X-Product-Request') !== (batchEdit ? 'edit' : 'create')) return errorResponse('Request must come from this dashboard', 403);
+      const denied = authorizeProductWrite(request, env, batchEdit ? 'edit' : 'create');
+      if (denied) return denied;
       return batchEdit ? editProductsFromForm(request, env) : createProductFromForm(request, env);
     }
     if (request.method === 'GET' && /^\/api\/images\/[a-f0-9-]+$/.test(pathname)) {
@@ -49,3 +48,16 @@ export default {
     }
   },
 };
+
+// HTTP authorization belongs here, not in the trusted internal storage/API helpers.
+// This permits loopback development only. Deployed admin authorization is still required.
+function authorizeProductWrite(request, env, action) {
+  const url = new URL(request.url);
+  if (env.LOCAL_PRODUCT_WRITES !== 'true' || !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) {
+    return errorResponse('Product writes are not enabled on this server', 403);
+  }
+  if (request.headers.get('Origin') !== url.origin || request.headers.get('X-Product-Request') !== action) {
+    return errorResponse('Request must come from this dashboard', 403);
+  }
+  return null;
+}

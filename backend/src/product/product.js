@@ -15,10 +15,20 @@ export class Product {
         continue;
       }
       const valid = field === 'photos'
-        ? Array.isArray(value) && value.length > 0
+        ? Array.isArray(value) && value.length > 0 && value.length <= 10 && Array.from(value).every(validPhoto)
         : typeof value === 'string' && value.trim().length > 0;
+      if (!valid && field === 'photos') throw new TypeError('photos must contain 1–10 valid HTTPS URLs or local image paths, each at most 2048 characters');
       if (!valid) throw new TypeError(`${field} must be a nonempty ${field === 'photos' ? 'array' : 'string'}`);
       this[field] = value;
     }
   }
+}
+
+function validPhoto(photo) {
+  if (typeof photo !== 'string' || !photo || photo.length > 2048 || /[\s\\]/.test(photo)) return false;
+  if (photo === '/assets/images/flower.svg' || /^\/api\/images\/[a-f0-9-]+$/.test(photo)) return true;
+  try {
+    const url = new URL(photo);
+    return url.protocol === 'https:' && !!url.hostname && !url.username && !url.password;
+  } catch { return false; }
 }

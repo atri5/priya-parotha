@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'csv-parse/sync';
 import { stringify } from 'csv-stringify/sync';
@@ -9,7 +9,7 @@ import { ProductDatabase } from './product-database.js';
 export class CsvProductDatabase extends ProductDatabase {
   constructor(filePath = process.env.PRODUCT_CSV_PATH || fileURLToPath(new URL('../../../data/products.csv', import.meta.url))) {
     super();
-    this.filePath = filePath;
+    this.filePath = realpathSync(filePath);
   }
 
   list() {
@@ -23,26 +23,43 @@ export class CsvProductDatabase extends ProductDatabase {
   }
 
   create(product) {
-    const products = this.list();
-    if (products.some(row => row.id === product.id)) throw new Error('id already exists');
-    const created = new Product(product);
-    this.#write([...products, created]);
-    return created;
+    return this.#mutate(() => {
+      const products = this.list();
+      if (products.some(row => row.id === product.id)) throw new Error('id already exists');
+      const created = new Product(product);
+      this.#write([...products, created]);
+      return created;
+    });
   }
 
   update(id, changes) {
-    const products = this.list();
-    const index = this.#index(products, id);
-    const updated = new Product({ ...products[index], ...changes, id });
-    products[index] = updated;
-    this.#write(products);
-    return updated;
+    return this.#mutate(() => {
+      const products = this.list();
+      const index = this.#index(products, id);
+      const updated = new Product({ ...products[index], ...changes, id });
+      products[index] = updated;
+      this.#write(products);
+      return updated;
+    });
   }
 
   delete(id) {
-    const products = this.list();
-    products.splice(this.#index(products, id), 1);
-    this.#write(products);
+    return this.#mutate(() => {
+      const products = this.list();
+      products.splice(this.#index(products, id), 1);
+      this.#write(products);
+    });
+  }
+
+  #mutate(operation) {
+    const lock = `${this.filePath}.lock`;
+    try { mkdirSync(lock); }
+    catch (error) {
+      if (error.code === 'EEXIST') throw new Error('CSV storage is busy; retry after the current writer finishes');
+      throw error;
+    }
+    try { return operation(); }
+    finally { rmSync(lock, { recursive: true }); }
   }
 
   #index(products, id) {

@@ -45,3 +45,11 @@ Inline edits stage all field and image changes until Save changes. Undo restores
 `NeonProductDatabase.updateBatch` uses `neon/apply-product-edits.sql`: rows are locked in ID order and compared with the snapshots. A missing or changed row raises a conflict and rolls back the entire batch. New uploads are cleaned up on failure; previously stored images are retained. The SQL function uses caller privileges and is not executable by PUBLIC.
 
 Local writes require development mode, a loopback hostname, exact Origin, and the dashboard request header. Production writes remain disabled. Publication state persists; public menu integration remains deferred.
+
+## Review hardening
+
+Photo references must be an array of 1–10 strings, each at most 2048 characters. Each reference must be an HTTPS URL without embedded credentials, the bundled default image path, or a local `/api/images/<key>` path. Blank values, whitespace, backslashes, other schemes, arbitrary objects, and protocol-relative URLs are rejected. Upload byte limits and file signatures are also checked by the HTTP handlers.
+
+CSV mutations acquire an atomic lock directory beside the canonical CSV path before reading. A competing writer fails with a busy error instead of overwriting another update; validation errors release the lock. This remains a local fixture adapter, not distributed storage. If a writer is forcibly terminated, remove its stale `.lock` directory only after confirming no writer remains active; locks are never automatically stolen. Neon is the deployed storage adapter.
+
+The Worker has one explicit `authorizeProductWrite` boundary for creation and batch updates. Internal product functions are trusted server code, not unauthenticated HTTP endpoints. The guard requires the local-write flag, loopback host, exact Origin, and operation header; it does not pretend to provide deployed admin authentication. Deployed writes remain denied until that separate feature is implemented.

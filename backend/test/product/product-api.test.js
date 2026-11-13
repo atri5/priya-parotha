@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { copyFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
@@ -55,6 +55,13 @@ test('Product API queries CSV, creates unique IDs, partially edits, deletes, and
   const { tags, ...untagged } = productData();
   assert.deepEqual((await api.createProduct(untagged)).tags, []);
 
+  mkdirSync(`${filePath}.lock`);
+  await assert.rejects(() => api.editProduct(id, { name: 'Must not save' }), /busy/i);
+  await assert.rejects(() => api.createProduct(productData()), /busy/i);
+  await assert.rejects(() => api.deleteProduct(id), /busy/i);
+  assert.equal((await api.getProduct(id)).name, data.name);
+  rmSync(`${filePath}.lock`, { recursive: true });
+  await assert.rejects(() => api.editProduct(id, { photos: [''] }), /photos/i);
   await api.deleteProduct(id);
   await assert.rejects(
     async () => api.editProduct(id, { price: '7.00' }),
