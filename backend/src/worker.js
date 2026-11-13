@@ -2,6 +2,8 @@ import { editProductsFromForm } from './product/edit-products-request.js';
 import { createProductFromForm } from './product/create-product-request.js';
 import { createProductApi } from './product/product-api.js';
 import { NeonProductDatabase } from './product/storage/neon-product-database.js';
+import { posix } from 'node:path';
+import { getSessionUser, handleAuth } from './auth/auth.js';
 
 const errorResponse = (error, status, headers) => Response.json({ error }, { status, headers });
 
@@ -9,11 +11,33 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const { pathname } = url;
+    let normalized;
+    try {
+      let decoded = pathname;
+      for (let index = 0; index < 4 && decoded.includes('%'); index++) decoded = decodeURIComponent(decoded);
+      if (decoded.includes('%')) throw new Error('Invalid path encoding');
+      normalized = posix.normalize(decoded.replaceAll('\\', '/')).toLowerCase();
+    } catch { return errorResponse('Invalid request path', 400); }
+    const dashboardPage = normalized.startsWith('/dashboard');
+    const dashboardAsset = ['/assets/js/dashboard', '/assets/css/dashboard'].some(prefix => normalized.startsWith(prefix));
+    const productWrite = /^\/api\/products(?:\/|$)/.test(normalized) && !['GET', 'HEAD', 'OPTIONS'].includes(request.method);
+    const adminApi = /^\/api\/admin(?:\/|$)/.test(normalized);
+    if (dashboardPage || dashboardAsset || productWrite || adminApi) {
+      const denied = await authorizeAdmin(request, env);
+      if (denied) {
+        if (dashboardPage && ['GET', 'HEAD'].includes(request.method) && [401, 403].includes(denied.status)) {
+          return privateResponse(new Response(null, { status: 303, headers: { Location: '/?auth_error=admin_required' } }));
+        }
+        return denied;
+      }
+      if (dashboardPage || dashboardAsset) return privateResponse(await env.ASSETS.fetch(request));
+      if (adminApi) return privateResponse(errorResponse('Not found', 404));
+    }
     const batchEdit = request.method === 'PATCH' && pathname === '/api/products';
     if (batchEdit || request.method === 'POST' && /^\/api\/products\/?$/.test(pathname)) {
       const denied = authorizeProductWrite(request, env, batchEdit ? 'edit' : 'create');
-      if (denied) return denied;
-      return batchEdit ? editProductsFromForm(request, env) : createProductFromForm(request, env);
+      if (denied) return privateResponse(denied);
+      return privateResponse(await (batchEdit ? editProductsFromForm(request, env) : createProductFromForm(request, env)));
     }
     if (request.method === 'GET' && /^\/api\/images\/[a-f0-9-]+$/.test(pathname)) {
       const image = await env.PRODUCT_IMAGES?.get(pathname.slice('/api/images/'.length));
@@ -23,6 +47,7 @@ export default {
       return new Response(image.body, { headers });
     }
     if (!pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
+    if (pathname.startsWith('/api/auth/')) return handleAuth(request, env);
     const tagsRoute = /^\/api\/tags\/?$/.test(pathname);
     const route = /^\/api\/products(?:\/([^/]+))?\/?$/.exec(pathname);
     if (!route && !tagsRoute) return errorResponse('Not found', 404);
@@ -49,8 +74,30 @@ export default {
   },
 };
 
-// HTTP authorization belongs here, not in the trusted internal storage/API helpers.
-// This permits loopback development only. Deployed admin authorization is still required.
+function privateResponse(response) {
+  const result = new Response(response.body, response);
+  result.headers.set('Cache-Control', 'private, no-store');
+  result.headers.append('Vary', 'Cookie');
+  result.headers.set('X-Content-Type-Options', 'nosniff');
+  result.headers.set('X-Frame-Options', 'DENY');
+  result.headers.set('Content-Security-Policy', "frame-ancestors 'none'");
+  return result;
+}
+
+async function authorizeAdmin(request, env) {
+  try {
+    const user = await getSessionUser(request, env);
+    if (!user) return privateResponse(errorResponse('Sign in with an admin account to continue', 401));
+    if (user.role !== 'admin') return privateResponse(errorResponse('Admin access is required', 403));
+    return null;
+  } catch (error) {
+    console.error(JSON.stringify({ message: 'Admin authorization failed', code: error.code || 'unknown' }));
+    return privateResponse(errorResponse('Could not verify access. Please try again.', 503));
+  }
+}
+
+// Admin sessions are required above, including on localhost. These additional guards
+// keep product writes confined to the existing development workflow.
 function authorizeProductWrite(request, env, action) {
   const url = new URL(request.url);
   if (env.LOCAL_PRODUCT_WRITES !== 'true' || !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) {

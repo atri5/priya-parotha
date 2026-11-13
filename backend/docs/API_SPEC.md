@@ -1,4 +1,4 @@
-# Product HTTP API plan
+# HTTP API
 
 The Cloudflare Worker implements the public GET routes below as a thin JSON wrapper over the existing product functions, using Neon storage. Product creation is mounted for local development only; deployed writes remain disabled. Scope: the current 20–30 product catalog.
 
@@ -36,10 +36,10 @@ PATCH sends only changes, for example `{"price":"6.00"}`. The proposed authentic
 
 ## Access
 
-- The public frontend uses only GET routes.
+- Product reads use public GET routes.
 - Writes are for trusted backend callers only. Do not mount write routes on the public server until backend-only authorization is configured; browser login alone must not permit product edits.
 - Neon database credentials and any backend authorization secrets stay on the server. CORS is not authorization.
-- No user authentication system is added. Database grants and row-level policies are defined in `neon/schema.sql`.
+- Authentication routes are described below. Product database grants and row-level policies are defined in `neon/schema.sql`.
 
 ## Errors
 
@@ -70,7 +70,7 @@ if (!response.ok) throw new Error('Could not load products');
 const products = await response.json();
 ```
 
-No pagination or account endpoints are included; local multipart creation and image handling are described below. Existing product tests stay unchanged.
+Product routes do not add pagination; local multipart creation and image handling are described below. Authentication endpoints are documented separately below.
 
 HTTP references: [status and response semantics](https://www.rfc-editor.org/rfc/rfc9110.html#name-status-codes), [PATCH](https://www.rfc-editor.org/rfc/rfc5789.html#section-2).
 
@@ -78,9 +78,9 @@ HTTP references: [status and response semantics](https://www.rfc-editor.org/rfc/
 
 ## Local dashboard write endpoints
 
-The dashboard sends `POST /api/products` as multipart form data: `name`, `desc`, `price`, `q_available`, optional `tags` (JSON array string), and repeated `photos` file fields. It requires `LOCAL_PRODUCT_WRITES=true`, a loopback request hostname, an exact matching `Origin`, and `X-Product-Request: create`. Production configuration sets the flag to false and omits the image bucket binding; this is not a substitute for deployed admin authentication.
+The dashboard sends `POST /api/products` as multipart form data: `name`, `desc`, `price`, `q_available`, optional `tags` (JSON array string), and repeated `photos` file fields. It requires a valid database admin session, `LOCAL_PRODUCT_WRITES=true`, a loopback request hostname, an exact matching `Origin`, and `X-Product-Request: create`. Production configuration keeps the additional feature flag false and omits the image bucket binding.
 
-For editing, the dashboard sends `PATCH /api/products` as multipart form data with an `edits` JSON field containing up to 50 `{ before, changes }` entries, plus optional repeated `photos:<product-id>` file fields. Each `before` value is the product snapshot returned by GET; `changes` contains only edited fields. This route uses the same local-only, loopback, Origin, and request-header checks, with `X-Product-Request: edit`. Updates are applied as one batch; a stale snapshot returns 409 and no product changes are saved. Uploaded images share the 20 MB request limit, and each product may have up to 10 photos.
+For editing, the dashboard sends `PATCH /api/products` as multipart form data with an `edits` JSON field containing up to 50 `{ before, changes }` entries, plus optional repeated `photos:<product-id>` file fields. Each `before` value is the product snapshot returned by GET; `changes` contains only edited fields. This route uses the same admin-session, local-only, loopback, Origin, and request-header checks, with `X-Product-Request: edit`. Updates are applied as one batch; a stale snapshot returns 409 and no product changes are saved. Uploaded images share the 20 MB request limit, and each product may have up to 10 photos.
 
 The endpoint validates all fields before writing. Price must be a nonnegative decimal with up to two decimal places and quantity a nonnegative whole number. Accept 0–10 JPEG/PNG/WebP images with matching file signatures, up to 10 MB each and 20 MB total. The request stream is capped at 21 MB including multipart overhead. Invalid input returns 400; oversized requests return 413; unsupported content type returns 415. Storage failures return a generic 500 and trigger image cleanup.
 
@@ -93,3 +93,22 @@ Images are optional for multipart creation. If none are submitted, the server sa
 ## Local batch update endpoint
 
 `PATCH /api/products` accepts multipart form data with `edits` containing a JSON array of `{ before: Product, changes: Partial<Product> }` and repeated `photos:<id>` upload fields. Requires the same local development, loopback, and exact Origin checks as creation, plus `X-Product-Request: edit`. Up to 50 products, 10 photos per product, 20 MB new images per save. `published` must be boolean. All field and file validation precedes writes; the database update is atomic. Returns the updated Product array, 400 for invalid input, 409 for a changed/deleted product, or a generic 500. Failed saves preserve frontend edits. Deployed PATCH remains forbidden.
+
+## Authentication
+
+Dashboard pages (including extensionless and encoded aliases), dashboard JavaScript/CSS, product mutation methods, and `/api/admin/*` require a current server-side admin session. Dashboard navigation redirects non-admins to `/?auth_error=admin_required`; protected assets and APIs return 401 for absent/invalid/expired sessions, 403 for customers, or 503 if access cannot be verified. Protected responses use `Cache-Control: private, no-store` and `Vary: Cookie`. Public product/tag GET routes retain their existing read access.
+
+All routes below are handled by the same Worker. POST requests must include a matching `Origin` header. Password routes accept JSON; Google start is a normal POST form. All successful sign-ins return to `/`.
+
+| Method | Path | Behavior |
+| --- | --- | --- |
+| GET | `/api/auth/session` | `{ user: { id, email, username, role, first_name, last_name } \| null, googleEnabled }`; clears invalid/expired cookies |
+| POST | `/api/auth/register` | `{ email, password, firstName, lastName }`; requires both names, creates a customer and session; returns `{ user, redirectTo: '/' }` |
+| POST | `/api/auth/login` | `{ email, password }`; creates a fresh session; returns `{ user, redirectTo: '/' }` |
+| POST | `/api/auth/logout` | Revokes the current session and clears its cookie; returns `{ redirectTo: '/' }` |
+| POST | `/api/auth/google` | Creates browser-bound state and redirects to Google; requires Google secrets |
+| GET | `/api/auth/google/callback` | Consumes state, verifies Google identity, creates a session, and redirects to `/` |
+
+Failures use `{ error }` with 400 (invalid fields), 401 (incorrect credentials), 403 (origin rejected), 405 (wrong method), 409 (registration collision), 413 (oversized body), 415 (wrong content type), 429 (rate limit), 503 (configuration unavailable), or a generic 500. Google callback failures redirect to `/?auth_error=<known-code>`; the frontend displays the message and removes the query parameter. Authentication responses are never cached. No tokens or password hashes are returned in JSON.
+
+See [ACCOUNT_CONTRACT.md](ACCOUNT_CONTRACT.md) for session guarantees, the password policy, and Google configuration.

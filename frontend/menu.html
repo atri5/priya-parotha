@@ -8,13 +8,14 @@
     <meta name="theme-color" content="#faf7ef" />
     <link rel="icon" href="assets/images/flower.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="assets/css/styles.css" />
+    <script src="assets/js/auth.js" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header">
       <a class="brand title-1" href="index.html"><img src="assets/images/flower.svg" alt="" width="36" height="36" />Priya Parotha</a>
       <nav class="main-nav body-5" aria-label="Main navigation"><a href="index.html">Home</a><a href="menu.html" aria-current="page">Menu</a><a href="contact.html">Contact us</a></nav>
-      <button class="sign-in button-sm" disabled title="Sign in is coming soon">Sign in <span class="caption-5">Soon</span></button>
+      <div class="account-menu" data-auth><button class="sign-in button-sm" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="auth-panel" data-auth-toggle disabled>Sign in</button></div>
     </header>
     <main class="placeholder-page container" id="main">
       <p class="eyebrow caption-3">Coming soon</p>

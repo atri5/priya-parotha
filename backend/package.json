@@ -5,15 +5,18 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
+    "test:auth-db": "node --env-file-if-exists=.env --test test/auth/storage.test.js",
     "dev": "cf dev",
     "build": "cf build",
     "deploy": "cf deploy",
-    "db:setup": "node --env-file-if-exists=.env scripts/setup-neon.js"
+    "db:setup": "node --env-file-if-exists=.env scripts/setup-neon.js",
+    "db:accounts": "node --env-file-if-exists=.env scripts/setup-accounts.js"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
     "csv-parse": "^7.0.3",
-    "csv-stringify": "^6.9.0"
+    "csv-stringify": "^6.9.0",
+    "jose": "^6.2.17"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^2.0.0-beta.v.16",

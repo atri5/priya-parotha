@@ -1,3 +1,18 @@
+// Recheck a page restored from browser history after logout, expiry, or a role change.
+window.addEventListener('pagehide', event => { if (event.persisted) document.body.hidden = true; });
+window.addEventListener('pageshow', async event => {
+  if (!event.persisted) return;
+  document.body.hidden = true;
+  try {
+    const response = await fetch('/api/auth/session', { cache: 'no-store', signal: AbortSignal.timeout(10000) });
+    if (response.ok && (await response.json()).user?.role === 'admin') {
+      document.body.hidden = false;
+      return;
+    }
+  } catch {}
+  location.replace('/?auth_error=admin_required');
+});
+
 const views = {
   dashboard: ['Dashboard', 'Welcome to your kitchen workspace.', 'Your kitchen at a glance', 'Your overview will live here. Use the sidebar to explore the workspace.'],
   'create-product': ['Create Product', 'Make room for something delicious.', 'New dishes start here', 'Product creation is coming soon.'],
