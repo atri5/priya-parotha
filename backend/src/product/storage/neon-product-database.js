@@ -20,9 +20,9 @@ export class NeonProductDatabase extends ProductDatabase {
   async create(data) {
     const product = new Product(data);
     return this.#product(await this.sql`
-      insert into public.products (id, name, price, q_available, "desc", photos)
+      insert into public.products (id, name, price, q_available, "desc", photos, tags, published)
       values (${product.id}, ${product.name}, ${product.price}, ${product.q_available},
-        ${product.desc}, ${JSON.stringify(product.photos)}::jsonb)
+        ${product.desc}, ${JSON.stringify(product.photos)}::jsonb, ${JSON.stringify(product.tags)}::jsonb, ${product.published})
       returning *
     `);
   }
@@ -36,12 +36,17 @@ export class NeonProductDatabase extends ProductDatabase {
     if (!fields.length) return current;
     const updated = new Product({ ...current, ...changes, id });
     const assignments = fields.map((field, index) => `"${field}" = $${index + 1}`).join(', ');
-    const values = fields.map(field => field === 'photos' ? JSON.stringify(updated[field]) : updated[field]);
+    const values = fields.map(field => ['photos', 'tags'].includes(field) ? JSON.stringify(updated[field]) : updated[field]);
     // Only changed columns are written, preserving unrelated concurrent edits.
     return this.#product(await this.sql.query(
       `update public.products set ${assignments} where id = $${fields.length + 1} returning *`,
       [...values, id],
     ));
+  }
+
+  async updateBatch(edits) {
+    const rows = await this.sql`select * from public.apply_product_edits(${JSON.stringify(edits)}::jsonb)`;
+    return rows.map(row => new Product(row));
   }
 
   async delete(id) {

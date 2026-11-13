@@ -14,7 +14,7 @@ export class CsvProductDatabase extends ProductDatabase {
 
   list() {
     return parse(readFileSync(this.filePath, 'utf8'), { columns: true, skip_empty_lines: true, bom: true })
-      .map(row => new Product({ ...row, photos: JSON.parse(row.photos) }));
+      .map(row => new Product({ ...row, tags: row.tags === undefined ? (row.tag ? [row.tag] : []) : JSON.parse(row.tags), published: row.published === undefined ? false : JSON.parse(row.published), photos: JSON.parse(row.photos) }));
   }
 
   get(id) {
@@ -52,7 +52,7 @@ export class CsvProductDatabase extends ProductDatabase {
   }
 
   #write(products) {
-    const rows = products.map(product => ({ ...product, photos: JSON.stringify(product.photos) }));
+    const rows = products.map(product => ({ ...product, tags: JSON.stringify(product.tags), published: JSON.stringify(product.published), photos: JSON.stringify(product.photos) }));
     const temporary = `${this.filePath}.${randomUUID()}.tmp`;
     try {
       writeFileSync(temporary, stringify(rows, { header: true, columns: productFields }), 'utf8');

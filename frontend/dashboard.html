@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#faf7ef" />
+    <title>Dashboard | Priya Parotha</title>
+    <link rel="icon" href="assets/images/flower.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="assets/css/styles.css" />
+    <link rel="stylesheet" href="assets/css/dashboard.css" />
+    <script src="assets/js/dashboard.js" defer></script>
+  </head>
+  <body class="dashboard-page">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="dashboard-header">
+      <a class="brand title-1" href="index.html"><img src="assets/images/flower.svg" alt="" width="36" height="36" />Priya Parotha</a>
+      <nav class="dashboard-pages body-5" aria-label="Website pages">
+        <a href="index.html">Home</a><a href="menu.html">Menu</a><a href="contact.html">Contact us</a>
+      </nav>
+      <span class="dashboard-label caption-3">Admin workspace</span>
+    </header>
+    <div class="dashboard-layout">
+      <aside class="dashboard-sidebar">
+        <p class="eyebrow caption-3">Your kitchen</p>
+        <nav class="dashboard-nav title-3" aria-label="Dashboard navigation">
+          <a href="#dashboard" aria-current="page">Dashboard</a>
+          <details id="manage-menu">
+            <summary>Manage</summary>
+            <div class="manage-links body-5">
+              <a href="#manage-products">Manage Product</a>
+              <a href="#manage-accounts">Manage Accounts</a>
+            </div>
+          </details>
+          <a href="#orders">Orders</a>
+          <a href="#stats">Stats</a>
+        </nav>
+        <p class="sidebar-note caption-2">A little space for everything<br />behind your kitchen.</p>
+      </aside>
+      <main class="dashboard-content" id="main" tabindex="-1">
+        <p class="eyebrow caption-3">Priya Parotha</p>
+        <div class="view-heading">
+          <h1 class="heading-3" id="view-title">Dashboard</h1>
+          <a class="button button-md" id="add-product" href="#create-product" hidden><span aria-hidden="true">+</span> Add Product</a>
+        </div>
+        <a class="product-back body-5" id="product-back" href="#manage-products" hidden>← Back to products</a>
+        <p class="body-3 view-description" id="view-description">Welcome to your kitchen workspace.</p>
+        <section class="dashboard-placeholder" aria-labelledby="placeholder-title">
+          <img src="assets/images/flower.svg" alt="" width="48" height="48" />
+          <p class="eyebrow caption-3">Coming soon</p>
+          <h2 class="title-1" id="placeholder-title">Your kitchen at a glance</h2>
+          <p class="body-3" id="placeholder-description">Your overview will live here. Use the sidebar to explore the workspace.</p>
+        </section>
+        <section id="products-view" aria-label="Products" hidden>
+          <div class="product-filter-toolbar">
+          <div class="publication-filter" role="group" aria-labelledby="publication-label">
+            <span class="button-sm" id="publication-label">Publication status</span>
+            <div class="publication-options body-5">
+              <label><input type="radio" name="publication-filter" value="all" checked /> All</label>
+              <label><input type="radio" name="publication-filter" value="published" /> Published</label>
+              <label><input type="radio" name="publication-filter" value="unpublished" /> Unpublished</label>
+            </div>
+          </div>
+          <div class="product-filters">
+            <label class="button-sm" for="product-tag-filter">Filter by tag</label>
+            <select class="body-5" id="product-tag-filter"><option value="all">All tags</option></select>
+            <p class="caption-2" id="product-filter-count" role="status"></p>
+          </div>
+          </div>
+          <p class="body-3" id="product-filter-empty" hidden>No products match this tag.</p>
+          <p class="body-3" id="product-created-status" role="status"></p>
+          <p class="body-3" id="products-load-status" role="status">Loading products…</p>
+          <button class="product-edit button-sm" id="products-retry" type="button" hidden>Retry loading products</button>
+          <div class="product-grid" id="product-grid" aria-busy="true"></div>
+          <template id="product-card-template"><article class="product-card">
+              <div class="product-image"><img src="assets/images/flower.svg" alt="" width="48" height="48" /><span class="caption-2">Photo coming soon</span><div class="edit-images"></div><div class="picture-actions"><button type="button" class="add-product-images button-sm">+ Add images</button></div></div>
+              <div class="product-card-content">
+                <h2 class="title-1"></h2>
+                <div class="product-tags"></div>
+                <p class="body-6"></p>
+                <div class="inline-editor" hidden>
+                  <label class="body-5"><span>Name <span class="required-mark">*</span></span><input data-field="name" required /></label>
+                  <label class="body-5"><span>Description <span class="required-mark">*</span></span><textarea data-field="desc" rows="3" required></textarea></label>
+                  <div class="body-5">Tags<div class="tags-editor">
+                    <input class="tags-value" type="hidden" data-field="tags" value="[]" />
+                    <div class="tag-chips"></div>
+                    <div class="tag-entry-row"><input class="tag-entry" list="product-tags" aria-label="Add a product tag" placeholder="Choose or type a tag" /><button type="button" class="tag-add button-sm">Add</button></div>
+                  </div></div>
+                  <label class="body-5"><span>Price (USD) <span class="required-mark">*</span></span><input data-field="price" type="number" min="0" step="0.01" required /></label>
+                  <label class="body-5"><span>Available quantity <span class="required-mark">*</span></span><input data-field="q_available" type="number" min="0" step="1" required /></label>
+                  <p class="form-error caption-2" role="alert"></p>
+                </div>
+                <div class="product-footer">
+                <dl class="product-details">
+                  <div><dt class="caption-2">Price</dt><dd class="title-1"></dd></div>
+                  <div><dt class="caption-2">Available quantity</dt><dd class="title-1"></dd></div>
+                </dl>
+                <div class="product-actions"><button class="product-edit button-sm" type="button" aria-expanded="false">Edit</button><button class="product-delete button-sm" disabled aria-label="Delete product" title="Product deletion is coming soon">Delete</button><div class="product-visibility">
+                  <label class="body-5"><input type="checkbox" class="visibility-checkbox" aria-label="Publish product on website" /> Publish</label>
+                </div></div>
+                </div>
+              </div>
+            </article></template>
+        </section>
+        <form id="create-product-form" class="product-form" hidden>
+          <p class="caption-2"><span class="required-mark" aria-hidden="true">*</span> Required fields</p>
+          <div class="form-field">
+            <label class="button-sm" for="product-name">Product name <span class="required-mark" aria-hidden="true">*</span></label>
+            <input id="product-name" name="name" required placeholder="e.g. Aloo Parotha" />
+          </div>
+          <div class="form-field">
+            <label class="button-sm" for="product-description">Description <span class="required-mark" aria-hidden="true">*</span></label>
+            <textarea id="product-description" name="desc" rows="4" required placeholder="Tell customers about the dish and its ingredients."></textarea>
+          </div>
+          <div class="form-field">
+            <span class="button-sm">Tags <span class="caption-2">(optional)</span></span>
+            <div class="tags-editor">
+                    <input class="tags-value" type="hidden" name="tags" value="[]" />
+                    <div class="tag-chips"></div>
+                    <div class="tag-entry-row"><input class="tag-entry" list="product-tags" aria-label="Add a product tag" placeholder="Choose or type a tag" /><button type="button" class="tag-add button-sm">Add</button></div>
+                  </div>
+            <datalist id="product-tags"></datalist>
+            <p class="caption-2" id="tag-help">Choose or type a tag, then press Add or Enter. Add as many categories as you need.</p>
+            <p class="caption-2" id="tag-status" role="status"></p>
+          </div>
+          <fieldset class="image-field">
+            <legend class="button-sm">Product images <span class="caption-2">(optional)</span></legend>
+            <div id="image-dropzone" class="image-dropzone">
+              <p class="title-3">Drag and drop your images here</p>
+              <p class="caption-2" id="image-help">Leave blank to use the default picture, or choose up to 10 JPG, PNG, or WebP images. Maximum 10 MB each and 20 MB total.</p>
+              <label class="image-picker button-sm">Choose images<input id="product-images" type="file" accept="image/jpeg,image/png,image/webp" multiple aria-describedby="image-help image-error" /></label>
+            </div>
+            <p class="form-error body-6" id="image-error" role="alert"></p>
+            <p class="caption-2" id="image-count" role="status">No images selected.</p>
+            <ul class="image-previews" id="image-previews" aria-label="Selected images"></ul>
+          </fieldset>
+          <div class="form-row">
+            <div class="form-field">
+              <label class="button-sm" for="product-price">Price (USD) <span class="required-mark" aria-hidden="true">*</span></label>
+              <input id="product-price" name="price" type="number" min="0" step="0.01" inputmode="decimal" required placeholder="0.00" />
+            </div>
+            <div class="form-field">
+              <label class="button-sm" for="product-quantity">Available quantity <span class="required-mark" aria-hidden="true">*</span></label>
+              <input id="product-quantity" name="q_available" type="number" min="0" step="1" inputmode="numeric" value="0" required aria-describedby="quantity-help" />
+              <p class="caption-2" id="quantity-help">Leave at 0, or enter the number available now.</p>
+            </div>
+          </div>
+          <p class="body-6 form-note">Create products from the local dashboard. Product details save to the database; images are stored on this development machine.</p>
+          <div class="form-actions"><button class="button button-md" type="submit">Create product</button><a class="product-back body-5" href="#manage-products">Back to products</a></div>
+          <p class="body-3" id="product-form-status" role="status"></p>
+        </form>
+        <section class="bulk-save-bar" id="bulk-save-bar" aria-label="Unsaved product changes" hidden>
+          <div><p class="button-md" id="bulk-change-count" role="status"></p><p class="caption-2" id="bulk-save-status" role="status"></p></div>
+          <div class="bulk-save-actions"><button class="bulk-undo button-md" id="bulk-undo" type="button">Undo</button><button class="button button-md" id="bulk-save" type="button">Save changes</button></div>
+        </section>
+        <noscript><p class="body-3">Enable JavaScript to switch between dashboard sections.</p></noscript>
+      </main>
+    </div>
+    <dialog id="add-images-dialog" class="image-dialog" aria-labelledby="add-images-title">
+      <h2 class="title-1" id="add-images-title">Add product images</h2>
+      <p class="body-6">Choose JPG, PNG, or WebP images, up to 10 MB each. Up to 10 images per product and 20 MB uploaded per save.</p>
+      <div class="image-dropzone" id="edit-dropzone">
+        <p class="title-3">Drag and drop images here</p>
+        <label class="image-picker button-sm">Choose images<input id="edit-dialog-files" type="file" accept="image/jpeg,image/png,image/webp" multiple /></label>
+      </div>
+      <ul class="image-previews" id="edit-dialog-previews"></ul>
+      <p class="form-error body-6" id="edit-dialog-error" role="alert"></p>
+      <div class="dialog-actions"><button type="button" class="bulk-undo button-sm" data-close-dialog>Cancel</button><button type="button" class="button button-sm" id="confirm-add-images">Add images</button></div>
+    </dialog>
+    <dialog id="remove-image-dialog" class="image-dialog" aria-labelledby="remove-image-title">
+      <h2 class="title-1" id="remove-image-title">Remove this image?</h2>
+      <p class="body-3">The image will be removed when you save your changes. Undo can restore it before saving.</p>
+      <div class="dialog-actions"><button type="button" class="bulk-undo button-sm" data-close-dialog autofocus>Cancel</button><button type="button" class="button button-sm" id="confirm-remove-image">Remove image</button></div>
+    </dialog>
+  </body>
+</html>
