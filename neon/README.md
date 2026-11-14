@@ -13,7 +13,7 @@ npm run db:setup
 npm run db:setup -- --seed
 ```
 
-The second command optionally imports the sample CSV without overwriting existing IDs. The setup script applies the initial schema; future schema changes should use explicit migrations.
+The second command optionally imports the sample CSV without overwriting existing IDs. The setup script applies the product schema and tag migration; account migrations are applied separately with `npm run db:accounts`.
 
 Production uses `NeonProductDatabase`; `CsvProductDatabase` remains available for local tests. Database credentials are stored only in ignored backend files and Cloudflare secrets.
 

@@ -147,6 +147,41 @@ a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid 
 .placeholder-page > p:not(.eyebrow) { margin-top: 24px; color: var(--muted); }
 .placeholder-page .button { margin-top: 32px; }
 
+.menu-page { min-height: 65vh; }
+.menu-intro { padding-block: 80px 40px; }
+.menu-intro h1 { max-width: 720px; margin-top: 20px; }
+.menu-intro > p:last-child { max-width: 560px; margin-top: 20px; color: var(--muted); }
+.menu-catalog { padding-bottom: 80px; }
+.menu-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 32px; }
+.menu-category-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+.menu-category-link { display: inline-flex; align-items: center; padding: 8px 12px; border: 1px solid #b9bfaf; border-radius: 9999px; color: var(--ink); transition: background 300ms var(--curve), color 300ms var(--curve); }
+.menu-category-link:hover { background: var(--ink); color: var(--paper); }
+.menu-category-link:focus-visible, .menu-retry:focus-visible { outline: 2px solid var(--spice); outline-offset: 4px; }
+.menu-status { padding-block: 24px; color: var(--muted); }
+.menu-retry { padding: 8px 12px; border: 1px solid #b9bfaf; border-radius: 8px; background: var(--paper); color: var(--ink); cursor: pointer; }
+.menu-retry:hover { background: #f0ede3; }
+.menu-sections { display: grid; gap: 56px; }
+.menu-sections[aria-busy="true"] { min-height: 240px; border-radius: 16px; background: #f0ede3; }
+.menu-category { scroll-margin-top: 32px; }
+.menu-category-title { margin-bottom: 24px; }
+.menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 24px; }
+.menu-card { overflow: hidden; border: 1px solid #e9e3d7; border-radius: 16px; background: #fffdf8; }
+.menu-card-image, .menu-card-placeholder { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #f0ede3; }
+.menu-card-placeholder { display: grid; place-content: center; justify-items: center; gap: 8px; color: var(--muted); }
+.menu-card-placeholder img { width: 36px; height: 36px; }
+.menu-card-content { display: grid; gap: 12px; padding: 20px; }
+.menu-card-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.menu-card-heading h2 { font-size: 20px; line-height: 28px; font-weight: 600; }
+.menu-card-price { flex-shrink: 0; color: var(--spice); font-weight: 600; }
+.menu-card-description { color: var(--muted); }
+@media (max-width: 680px) {
+  .menu-intro { padding-block: 56px 32px; }
+  .menu-catalog { padding-bottom: 56px; }
+  .menu-toolbar { align-items: flex-start; }
+  .menu-category-nav { width: 100%; }
+  .menu-sections { gap: 40px; }
+}
+
 @media (max-width: 900px) {
   .hero { gap: 32px; }
   .benefits { gap: 24px; padding: 32px; }

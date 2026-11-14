@@ -13,7 +13,7 @@ The Cloudflare Worker implements the public GET routes below as a thin JSON wrap
 | PATCH | `/api/products/:id` | `editProduct(id, body)` | `200`, updated Product | Backend only |
 | DELETE | `/api/products/:id` | `deleteProduct(id)` | `204`, no body | Backend only |
 
-Return the Product or array directly as JSON, without an extra response envelope. Product fields remain `id`, `name`, `price`, `q_available`, `desc`, `photos`, `tags`, and `published`. Price and quantity remain strings; photos remain an array.
+Return the Product or array directly as JSON, without an extra response envelope. Product fields are `id`, `name`, `price`, `q_available`, `desc`, `photos`, `tags`, and `published`. Tags are an array of strings and default to `[]`; `published` is a boolean and defaults to `false`. Price and quantity remain strings; photos remain an array.
 
 ## Request bodies
 
@@ -60,7 +60,7 @@ Distinguish request parsing errors from storage parsing failures. Never include 
 
 1. `backend/src/worker.js` serves assets and matches the GET routes, decoding IDs and serializing results/errors. Unsupported methods receive 405 without calling product functions.
 2. The Worker constructs `createProductApi(new NeonProductDatabase(env.DATABASE_URL))`. It does not read CSV or implement product validation rules itself. Missing database configuration returns 503; unexpected database failures return a generic 500.
-3. Future menu-page requests can use `/api/products` on the same origin. The current frontend remains a homepage with separate menu/contact placeholders.
+3. The menu fetches `/api/products` on the same origin and displays products with `published: true`.
 
 Frontend read example:
 
