@@ -26,7 +26,11 @@ export class Product {
 
 function validPhoto(photo) {
   if (typeof photo !== 'string' || !photo || photo.length > 2048 || /[\s\\]/.test(photo)) return false;
-  if (photo === '/assets/images/flower.svg' || /^\/api\/images\/[a-f0-9-]+$/.test(photo)) return true;
+  if (
+    photo === '/assets/images/flower.svg'
+    || /^\/api\/images\/[a-f0-9-]+$/.test(photo)
+    || /^\/assets\/images\/products\/[a-z0-9]+(?:-[a-z0-9]+)*\.webp$/.test(photo)
+  ) return true;
   try {
     const url = new URL(photo);
     return url.protocol === 'https:' && !!url.hostname && !url.username && !url.password;

@@ -22,9 +22,10 @@ test('Product API queries CSV, creates unique IDs, partially edits, deletes, and
 
   const data = { ...productData(), tags: ['Lunch, specials', 'Parotha'], desc: 'Potato, herbs and "spices".\nFresh daily.' };
   const first = await api.createProduct(data);
-  const second = await api.createProduct(productData());
+  const second = await api.createProduct({ ...productData(), tags: ['Breakfast'], published: true });
   const id = first.id;
-  assert.deepEqual(await createProductApi(new CsvProductDatabase(filePath)).getTags(), ['Lunch, specials', 'Parotha']);
+  assert.deepEqual(await api.getProduct(second.id), second);
+  assert.deepEqual(await createProductApi(new CsvProductDatabase(filePath)).getTags(), ['Breakfast', 'Lunch, specials', 'Parotha']);
   await api.editProduct(second.id, { tags: data.tags });
   assert.deepEqual(await api.getTags(), ['Lunch, specials', 'Parotha']);
 
