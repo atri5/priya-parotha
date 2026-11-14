@@ -102,7 +102,8 @@ export function createAuthHandler(databaseFactory = env => new AuthDatabase(env.
           try { user = await database.createGoogleUser(identity.subject, identity.email, identity.firstName, identity.lastName); }
           catch (error) {
             if (error.code !== '23505') throw error;
-            user = await database.getGoogleUser(identity.subject);
+            user = await database.getGoogleUser(identity.subject)
+              || await database.claimProvisionedGoogleUser(identity.subject, identity.email);
             if (!user) return redirect('/?auth_error=account_exists', [clear]);
           }
         }

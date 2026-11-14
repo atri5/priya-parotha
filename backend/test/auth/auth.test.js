@@ -7,7 +7,7 @@ test('Auth registers customers, rotates/revokes sessions, rejects CSRF, and cons
   const origin = 'https://shop.example';
   const user = { id: 'customer-1', email: 'customer@example.com', username: null, role: 'customer', first_name: 'Asha', last_name: 'Shah' };
   const sessions = new Map(), flows = new Map();
-  let googleUser, collision = false;
+  let googleUser, collision = false, provisioned = false;
   const database = {
     registerPassword: async (email, password, firstName, lastName) => {
       assert.equal(email, user.email);
@@ -38,6 +38,7 @@ test('Auth registers customers, rotates/revokes sessions, rejects CSRF, and cons
       if (collision) throw Object.assign(new Error(), { code: '23505' });
       return googleUser = user;
     },
+    claimProvisionedGoogleUser: async () => provisioned ? googleUser = user : undefined,
     fillGoogleNames: async (id, firstName, lastName) => {
       assert.equal(id, user.id);
       assert.equal(firstName, user.first_name);
@@ -112,4 +113,13 @@ test('Auth registers customers, rotates/revokes sessions, rejects CSRF, and cons
   response = await handle(request(`google/callback?code=google-code&state=${retryState}`, null, retry.headers.get('Set-Cookie').split(';')[0]), env);
   assert.match(response.headers.get('Location'), /account_exists/);
   assert.equal(cookieFrom(response), undefined);
+
+  provisioned = true;
+  user.role = 'admin';
+  const claim = await handle(request('google', {}), env);
+  const claimState = new URL(claim.headers.get('Location')).searchParams.get('state');
+  response = await handle(request(`google/callback?code=google-code&state=${claimState}`, null, claim.headers.get('Set-Cookie').split(';')[0]), env);
+  assert.equal(response.headers.get('Location'), '/');
+  const claimedSession = await handle(request('session', null, cookieFrom(response)), env);
+  assert.equal((await claimedSession.json()).user.role, 'admin');
 });

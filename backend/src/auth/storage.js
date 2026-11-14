@@ -82,7 +82,7 @@ export class AuthDatabase {
   }
 
   async createGoogleUser(subject, email, firstName = null, lastName = null) {
-    // Both inserts roll back on a duplicate email or Google identity. Never link by email.
+    // Both inserts roll back on a duplicate email or Google identity. Existing login accounts must not be linked by email.
     const [user] = await this.sql`
       with new_user as (
         insert into public.users (email, email_verified, role, first_name, last_name)
@@ -93,6 +93,27 @@ export class AuthDatabase {
         select 'google', ${subject}, id from new_user returning user_id
       )
       select u.* from new_user u join identity i on i.user_id = u.id
+    `;
+    return user;
+  }
+
+  async claimProvisionedGoogleUser(subject, email) {
+    // Called only after Google token verification. Gmail is authoritative for this email.
+    // Only trusted provisioning creates users without credentials or sessions.
+    const [user] = await this.sql`
+      with claimed_user as (
+        update public.users u set email_verified = true
+        where lower(u.email) = lower(${email}) and lower(u.email) like '%@gmail.com'
+          and not u.email_verified
+          and not exists (select 1 from public.password_credentials p where p.user_id = u.id)
+          and not exists (select 1 from public.oauth_accounts a where a.user_id = u.id)
+          and not exists (select 1 from public.sessions s where s.user_id = u.id)
+        returning u.id, u.email, u.username, u.role, u.first_name, u.last_name
+      ), identity as (
+        insert into public.oauth_accounts (provider, provider_user_id, user_id)
+        select 'google', ${subject}, id from claimed_user returning user_id
+      )
+      select u.* from claimed_user u join identity i on i.user_id = u.id
     `;
     return user;
   }

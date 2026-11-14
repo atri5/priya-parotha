@@ -40,6 +40,7 @@ test('Neon hashes passwords, stores expiring sessions, consumes OAuth state, and
   assert.equal(await database.consumeOAuthState(hash('state'), hash('browser')), undefined);
   await assert.rejects(database.createGoogleUser(unique, user.email), { code: '23505' });
   assert.equal(await database.getGoogleUser(unique), undefined);
+  assert.equal(await database.claimProvisionedGoogleUser(unique, user.email), undefined);
   const googleUser = await database.createGoogleUser(unique, `google-${unique}@example.invalid`);
   ids.push(googleUser.id);
   assert.equal(googleUser.role, 'customer');
@@ -53,4 +54,27 @@ test('Neon hashes passwords, stores expiring sessions, consumes OAuth state, and
   ids.push(createdGoogleUser.id);
   assert.equal(createdGoogleUser.first_name, 'Neha');
   assert.equal(createdGoogleUser.last_name, 'Sharma');
+
+  const [provisioned] = await database.sql`
+    insert into public.users (email, role, first_name, last_name)
+    values (${`provisioned-${unique}@gmail.com`}, 'admin', 'Priyanka', 'Tripathi')
+    returning id, email, username, role, first_name, last_name
+  `;
+  ids.push(provisioned.id);
+  const subject = `${unique}-provisioned`;
+  // A password account cannot be claimed, even with a matching Gmail address.
+  await database.sql`insert into public.password_credentials (user_id, password_hash) select ${provisioned.id}, password_hash from public.password_credentials where user_id = ${user.id}`;
+  assert.equal(await database.claimProvisionedGoogleUser(subject, provisioned.email), undefined);
+  await database.sql`delete from public.password_credentials where user_id = ${provisioned.id}`;
+  await database.createSession(hash('provisioned'), provisioned.id, expires, null);
+  assert.equal(await database.claimProvisionedGoogleUser(subject, provisioned.email), undefined);
+  await database.deleteSession(hash('provisioned'));
+  await database.sql`update public.users set email = ${`provisioned-${unique}@example.invalid`} where id = ${provisioned.id}`;
+  assert.equal(await database.claimProvisionedGoogleUser(subject, `provisioned-${unique}@example.invalid`), undefined);
+  await database.sql`update public.users set email = ${provisioned.email} where id = ${provisioned.id}`;
+  assert.deepEqual(await database.claimProvisionedGoogleUser(subject, provisioned.email.toUpperCase()), provisioned);
+  assert.deepEqual(await database.getGoogleUser(subject), provisioned);
+  const [verified] = await database.sql`select email_verified from public.users where id = ${provisioned.id}`;
+  assert.equal(verified.email_verified, true);
+  assert.equal(await database.claimProvisionedGoogleUser(`${subject}-other`, provisioned.email), undefined);
 });
