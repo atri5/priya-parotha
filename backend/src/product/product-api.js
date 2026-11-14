@@ -11,6 +11,10 @@ export function createProductApi(database = new CsvProductDatabase()) {
     async getProducts() {
       return database.list();
     },
+    async getTags() {
+      const products = await database.list();
+      return [...new Set(products.flatMap(product => product.tags).filter(tag => tag.trim()))].sort();
+    },
     async getProduct(id) {
       requireId(id);
       return database.get(id);

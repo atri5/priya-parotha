@@ -8,20 +8,35 @@
     <meta name="theme-color" content="#faf7ef" />
     <link rel="icon" href="assets/images/flower.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="assets/css/styles.css" />
+    <script src="assets/js/auth.js" defer></script>
+    <script src="assets/js/menu.js" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header">
       <a class="brand title-1" href="index.html"><img src="assets/images/flower.svg" alt="" width="36" height="36" />Priya Parotha</a>
       <nav class="main-nav body-5" aria-label="Main navigation"><a href="index.html">Home</a><a href="menu.html" aria-current="page">Menu</a><a href="contact.html">Contact us</a></nav>
-      <button class="sign-in button-sm" disabled title="Sign in is coming soon">Sign in <span class="caption-5">Soon</span></button>
+      <div class="account-menu" data-auth><button class="sign-in button-sm" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="auth-panel" data-auth-toggle disabled>Sign in</button></div>
     </header>
-    <main class="placeholder-page container" id="main">
-      <p class="eyebrow caption-3">Coming soon</p>
-      <h1 class="heading-2">Our menu is on its way.</h1>
-      <p class="body-3">We’re preparing our home cooked Indian menu. Dishes and ordering details will be added here soon.</p>
-
-      <a class="button button-md" href="index.html">Back to home</a>
+    <main class="menu-page" id="main">
+      <section class="menu-intro container" aria-labelledby="menu-title">
+        <p class="eyebrow caption-3">From our kitchen in Windemere</p>
+        <h1 class="heading-2" id="menu-title">A menu made for sharing.</h1>
+        <p class="body-3">Explore the dishes Priyanka is preparing for your family’s table.</p>
+      </section>
+      <section class="menu-catalog container" aria-label="Menu items">
+        <div class="menu-toolbar">
+          <nav class="menu-category-nav" id="menu-category-nav" aria-label="Jump to a menu category" hidden></nav>
+        </div>
+        <p class="menu-status body-3" id="menu-status" role="status" aria-live="polite">Loading menu…</p>
+        <button class="menu-retry button-sm" id="menu-retry" type="button" hidden>Try again</button>
+        <div class="menu-sections" id="menu-sections" aria-busy="true"></div>
+      </section>
     </main>
+    <footer class="site-footer container">
+      <div><a class="brand title-1" href="index.html"><img src="assets/images/flower.svg" alt="" width="32" height="32" />Priya Parotha</a><p class="caption-2">From our home to yours. Windemere, San Ramon.</p></div>
+      <nav class="footer-nav body-5" aria-label="Footer navigation"><a href="index.html">Home</a><a href="contact.html">Contact us</a></nav>
+      <p class="copyright caption-5">© 2026 Priya Parotha</p>
+    </footer>
   </body>
 </html>

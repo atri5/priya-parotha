@@ -11,6 +11,7 @@ cpSync(new URL('../frontend/', import.meta.url), publicDir, {
 });
 
 export default defineConfig({
+  server: { host: '127.0.0.1' },
   plugins: [cloudflare()],
   publicDir: publicDir.pathname,
 });

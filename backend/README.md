@@ -2,7 +2,7 @@
 
 Product CRUD with Neon online storage and a CSV adapter for local fixtures. Requirements are saved in [docs/PRODUCT_CONTRACT.md](docs/PRODUCT_CONTRACT.md).
 
-The Cloudflare Worker serves the website and the two public GET routes documented in [docs/API_SPEC.md](docs/API_SPEC.md). Create, edit, and delete remain backend functions with no public HTTP routes.
+The Cloudflare Worker serves the website, public product GET routes, and authentication routes documented in [docs/API_SPEC.md](docs/API_SPEC.md). Local development supports product creation and batch edits; deployed product writes remain disabled.
 
 ## Run tests
 
@@ -14,7 +14,7 @@ npm ci
 npm test
 ```
 
-The two tests use Node's built-in runner and a temporary CSV copy. CSV parsing and serialization use `csv-parse` and `csv-stringify`.
+Tests use Node's built-in runner. Product API tests use a temporary CSV copy, and local write-handler tests use isolated storage mocks; authentication tests cover routes and Google token verification. The Neon integration test is skipped without `DATABASE_URL`; run `npm run test:auth-db` to load it from `.env` and check real password hashing and sessions. It creates temporary accounts and deletes them afterward. CSV parsing and serialization use `csv-parse` and `csv-stringify`.
 
 ## Usage
 
@@ -56,6 +56,8 @@ Keep the Neon connection in ignored `.env` for backend scripts and `.dev.vars` f
 
 The online schema and optional sample import are described in [../neon/README.md](../neon/README.md). The initial database is on Neon Free; no paid Cloudflare subscription is required for this small deployment. No custom domain is purchased or configured.
 
+Authentication uses the same Neon database. Run `npm run db:accounts` to create the private account/session tables and enable `pgcrypto`. The shared Sign in dropdown supports email/password registration, login, logout, and Google when configured, returning users to `/`. New accounts are customers; admin promotion stays trusted/backend-only. Password hashing and verification run in Neon to keep the Worker on the Free plan. Sessions use revocable database records and private cookies with a seven-day expiry. See [docs/ACCOUNT_CONTRACT.md](docs/ACCOUNT_CONTRACT.md) for Google OAuth setup, password policy, security behavior, and the deferred email verification/recovery work.
+
 Live deployment: https://priya-parotha.priya-parotha.workers.dev. Product reads are at `/api/products` and `/api/products/:id`; POST, PATCH, and DELETE return 405. Initial application source: `31a95b3`; Cloudflare version: `adf7ddf4-2788-445a-a9d4-6a1d74b760c7`.
 
 ## Layout
@@ -74,3 +76,9 @@ Live deployment: https://priya-parotha.priya-parotha.workers.dev. Product reads 
 - `test-support/product/` — shared test fixtures
 
 The old Supabase migrations are retained as alternatives; production uses Neon. The menu and contact pages remain placeholders and do not query the API yet.
+
+The dashboard renders products from `/api/products` and loads category suggestions from `/api/tags`. Dashboard pages, its JavaScript/CSS, and all product mutations require a real admin session verified by the Worker on each request. Unauthorized navigation returns to the homepage; protected APIs/assets return 401 or 403, and failed authorization lookups deny access with 503. Private responses are not cached. Run the Worker development server for dashboard testing; the standalone Python frontend server does not enforce these protections. Local admin Create and Edit save to Neon; the Products page stages edits and Publish changes for its Save changes button. Deployed writes and Delete remain deferred.
+
+Local creation is enabled only in development mode and accepts same-origin requests on loopback. Uploaded photos persist in local R2 storage under ignored Cloudflare state; do not remove this state if you want to keep those images. Deploying the application does not upload these images. Production builds disable creation and omit the local image binding.
+
+`npm run db:setup` also installs `neon/apply-product-edits.sql` for atomic batch edits and adds the `published` boolean. No authentication bypass is enabled in production.
