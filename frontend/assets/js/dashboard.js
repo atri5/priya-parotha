@@ -195,9 +195,15 @@ let priceIsCustom = false;
 let orderCatalog = new Map();
 let editingDraft = null;
 let savingOrder = false;
-let newOrderKey = crypto.randomUUID();
-let cachedOrders = null;
-let pendingOrders = null;
+const pendingKey = 'pending-order-id';
+const cachedPages = new Map();
+let cursors = [''];
+let nextCursor = '';
+let listVersion = 0;
+const pagination = document.getElementById('order-pagination');
+const previousOrders = document.getElementById('previous-orders');
+const nextOrders = document.getElementById('next-orders');
+const confirmation = document.getElementById('order-confirmation');
 const orderList = document.getElementById('order-drafts');
 const ordersStatus = document.getElementById('orders-status');
 const orderError = document.getElementById('order-save-error');
@@ -205,66 +211,71 @@ const orderError = document.getElementById('order-save-error');
 const orderFilters = document.getElementById('order-filters');
 const clearDates = document.getElementById('clear-order-dates');
 
-async function orderRequest(method, order, body) {
+async function orderRequest(method, order, body, query = '') {
   const headers = {};
-  if (method === 'POST') headers['Idempotency-Key'] = newOrderKey;
+  if (method === 'POST') {
+    const key = sessionStorage.getItem(pendingKey) || crypto.randomUUID();
+    sessionStorage.setItem(pendingKey, key);
+    headers['Idempotency-Key'] = key;
+  }
   if (body) headers['Content-Type'] = 'application/json';
-  if (order) headers['If-Match'] = `"${order.revision}"`;
-  const response = await fetch('/api/admin/orders' + (order ? '/' + order.id : ''), {
+  if (order && method !== 'GET') headers['If-Match'] = `"${order.revision}"`;
+  const response = await fetch('/api/admin/orders' + (order ? '/' + order.id : query), {
     method, headers, body: body && JSON.stringify(body), cache: 'no-store',
   });
   if (response.status === 401 || response.status === 403) invalidateOrders();
   if (response.status === 204) return;
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error || 'Could not access orders');
+  if (!response.ok) throw Object.assign(new Error(result.error || 'Could not access orders'), { status: response.status });
+  if (method === 'GET' && !order) return { orders: result, next: response.headers.get('X-Next-Cursor') || '' };
   return result;
 }
 
 function invalidateOrders() {
-  cachedOrders = null;
-  pendingOrders = null;
+  cachedPages.clear();
+  listVersion++;
+  cursors = [''];
+  pagination.hidden = true;
   orderList.replaceChildren();
 }
 
-function applyOrderChange(id, savedOrder) {
-  if (!cachedOrders) {
-    // A list request started before this write may contain the old revision.
-    pendingOrders = null;
-    return;
-  }
-  cachedOrders = cachedOrders.filter(order => order.id !== id);
-  if (savedOrder) cachedOrders.push(savedOrder);
-  cachedOrders.sort((a, b) => a.due.localeCompare(b.due) || a.id.localeCompare(b.id));
-}
-
 async function loadOrders() {
-  if (cachedOrders) return renderOrders();
-  if (pendingOrders) return;
-  ordersStatus.textContent = 'Loading orders…';
-  const request = orderRequest('GET');
-  pendingOrders = request;
-  try {
-    const orders = await request;
-    if (pendingOrders !== request) return;
-    cachedOrders = orders;
-    renderOrders();
-  } catch (error) {
-    if (!pendingOrders || pendingOrders === request) ordersStatus.textContent = error.message;
-  } finally {
-    if (pendingOrders === request) pendingOrders = null;
-  }
-}
-
-function renderOrders() {
+  const version = ++listVersion;
   const { status, from, to } = orderFilters.elements;
   clearDates.hidden = !from.value && !to.value;
+  pagination.hidden = true;
   orderList.replaceChildren();
   if (from.value && to.value && from.value > to.value) {
     ordersStatus.textContent = 'Choose an end date on or after the start date.';
     return;
   }
-  const orders = cachedOrders.filter(order => (!from.value || order.due >= from.value) &&
-    (!to.value || order.due <= to.value) && (!status.value || order.status === status.value));
+  const params = new URLSearchParams();
+  if (status.value) params.set('status', status.value);
+  if (from.value) params.set('from', from.value);
+  if (to.value) params.set('to', to.value);
+  if (cursors.at(-1)) params.set('after', cursors.at(-1));
+  const key = '?' + params;
+  ordersStatus.textContent = 'Loading orders…';
+  try {
+    const page = cachedPages.get(key) ?? await orderRequest('GET', null, null, key);
+    if (version !== listVersion) return;
+    cachedPages.set(key, page);
+    if (cachedPages.size > 6) cachedPages.delete(cachedPages.keys().next().value);
+    nextCursor = page.next;
+    previousOrders.disabled = cursors.length === 1;
+    nextOrders.disabled = !nextCursor;
+    pagination.hidden = previousOrders.disabled && nextOrders.disabled;
+    renderOrders(page.orders);
+  } catch (error) {
+    if (version === listVersion || [401, 403].includes(error.status)) ordersStatus.textContent = error.message;
+  }
+}
+
+previousOrders.onclick = () => { cursors.pop(); loadOrders(); };
+nextOrders.onclick = () => { cursors.push(nextCursor); loadOrders(); };
+
+function renderOrders(orders) {
+  const { status, from, to } = orderFilters.elements;
   for (const radio of status) {
     if (!radio.value) continue;
     const matches = orders.filter(order => order.status === radio.value);
@@ -280,13 +291,13 @@ function renderOrders() {
   ordersStatus.textContent = orders.length ? '' : (from.value || to.value || status.value ? 'No orders match these filters.' : 'No orders yet.');
   if (location.hash === '#orders') refreshDueDates();
 }
-orderFilters.onchange = loadOrders;
+orderFilters.onchange = () => { cursors = ['']; loadOrders(); };
 orderFilters.onsubmit = event => { event.preventDefault(); loadOrders(); };
 clearDates.onclick = () => {
   orderFilters.elements.from.value = '';
   orderFilters.elements.to.value = '';
   orderFilters.elements.from.focus();
-  loadOrders();
+  orderFilters.onchange();
 };
 
 function fillOrderSelect(select) {
@@ -394,8 +405,10 @@ orderForm.onsubmit = async event => {
   orderForm.inert = true;
   orderError.textContent = '';
   try {
-    const saved = await orderRequest(editingDraft ? 'PUT' : 'POST', editingDraft?.order, order);
-    applyOrderChange(saved.id, saved);
+    await orderRequest(editingDraft ? 'PUT' : 'POST', editingDraft?.order, order);
+    if (!editingDraft) sessionStorage.removeItem(pendingKey);
+    confirmation.hidden = true;
+    invalidateOrders();
     resetOrderForm();
     if (location.hash === '#orders') await loadOrders();
     else location.hash = 'orders';
@@ -415,15 +428,26 @@ function renderOrder(order) {
   const due = draft.querySelector('time');
   due.dateTime = order.due;
   due.textContent = `Due: ${due.dateTime}`;
-  draft.querySelector('.order-contact').textContent = `${order.address} · ${order.phone}`;
-  const items = draft.querySelector('ul');
-  for (const [id, quantity] of Object.entries(order.products)) {
-    const item = document.createElement('li');
-    item.textContent = `${orderCatalog.get(id)?.name ?? id} × ${quantity}`;
-    item.dataset.productId = id;
-    item.dataset.quantity = quantity;
-    items.append(item);
+  let detailsRequest;
+  function getDetails() {
+    detailsRequest ??= orderRequest('GET', order).catch(error => { detailsRequest = null; throw error; });
+    return detailsRequest;
   }
+  draft.querySelector('details').ontoggle = async event => {
+    if (!event.target.open) return;
+    try {
+      const detail = await getDetails();
+      draft.querySelector('.order-contact').textContent = `${detail.address} · ${detail.phone}`;
+      const items = Object.entries(detail.products).map(([id, quantity]) => {
+        const item = document.createElement('li');
+        item.textContent = `${orderCatalog.get(id)?.name ?? id} × ${quantity}`;
+        item.dataset.productId = id;
+        item.dataset.quantity = quantity;
+        return item;
+      });
+      draft.querySelector('ul').replaceChildren(...items);
+    } catch (error) { ordersStatus.textContent = error.message; }
+  };
   const status = draft.querySelector('[data-order-status]');
   status.value = order.status;
   async function changeOrder(action) {
@@ -438,13 +462,14 @@ function renderOrder(order) {
     }
   }
   status.onchange = () => changeOrder(async () => {
-    const saved = await orderRequest('PATCH', order, { status: status.value });
-    applyOrderChange(saved.id, saved);
+    await orderRequest('PATCH', order, { status: status.value });
+    invalidateOrders();
     await loadOrders();
   });
   const edit = draft.querySelector('[data-edit]');
   edit.disabled = !orderCatalog.size;
-  edit.onclick = () => {
+  edit.onclick = () => changeOrder(async () => {
+    order = await getDetails();
     editingDraft = { order };
     orderError.textContent = '';
     priceIsCustom = order.priceIsCustom;
@@ -459,10 +484,10 @@ function renderOrder(order) {
     updateOrderRows();
     createDraft.textContent = 'Save changes';
     location.hash = 'create-order';
-  };
+  });
   draft.querySelector('[data-trash]').onclick = () => changeOrder(async () => {
     await orderRequest('DELETE', order);
-    applyOrderChange(order.id);
+    invalidateOrders();
     await loadOrders();
     orderFilters.querySelector(':checked').focus();
   });
@@ -470,7 +495,6 @@ function renderOrder(order) {
 }
 
 function resetOrderForm() {
-  newOrderKey = crypto.randomUUID();
   editingDraft = null;
   orderError.textContent = '';
   priceIsCustom = false;
@@ -479,7 +503,22 @@ function resetOrderForm() {
   orderRows.replaceChildren();
   appendOrderRow();
 }
+async function recoverOrder() {
+  const id = sessionStorage.getItem(pendingKey);
+  if (!id) return;
+  try {
+    const saved = await orderRequest('GET', { id });
+    if (sessionStorage.getItem(pendingKey) !== id) return;
+    sessionStorage.removeItem(pendingKey);
+    confirmation.textContent = `Your previous order for ${saved.name} was saved.`;
+    confirmation.hidden = false;
+    if (location.hash === '#create-order') location.hash = 'orders';
+  } catch (error) {
+    if (error.status !== 404) orderError.textContent = 'Could not confirm the previous save. Retrying uses the same order ID.';
+  }
+}
 showView();
+recoverOrder();
 function addEditImages(card, id, files) {
   const retained = (selectedPhotos.get(id) || []).filter(photo => photo !== '/assets/images/flower.svg').length;
   const staged = stagedImages.get(id);

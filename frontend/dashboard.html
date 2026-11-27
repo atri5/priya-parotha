@@ -52,6 +52,7 @@
           <h2 class="title-1" id="placeholder-title">Your kitchen at a glance</h2>
           <p class="body-3" id="placeholder-description">Your overview will live here. Use the sidebar to explore the workspace.</p>
         </section>
+        <p id="order-confirmation" class="body-5" role="status" hidden></p>
         <section id="orders-view" aria-label="Orders" hidden>
           <form id="order-filters" class="product-filter-toolbar" aria-labelledby="order-filters-heading">
             <h2 id="order-filters-heading" class="title-1">Filters</h2>
@@ -72,6 +73,10 @@
           </form>
           <p id="orders-status" class="body-5" role="status"></p>
           <div id="order-drafts"></div>
+          <nav id="order-pagination" aria-label="Order pages" class="order-actions" hidden>
+            <button type="button" class="bulk-undo button-sm" id="previous-orders">Previous</button>
+            <button type="button" class="bulk-undo button-sm" id="next-orders">Next</button>
+          </nav>
         </section>
         <template id="order-draft-template">
           <div class="order-card">

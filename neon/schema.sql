@@ -38,3 +38,6 @@ create table if not exists public.orders (
 
 alter table public.orders enable row level security;
 revoke all on table public.orders from public;
+
+alter table public.orders add column if not exists creation_hash text;
+create index if not exists orders_due_id_idx on public.orders (due, id);

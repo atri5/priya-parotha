@@ -100,14 +100,14 @@ Order endpoints require an admin session. Mutations require the same-origin dash
 
 | Method | Path | Behavior |
 | --- | --- | --- |
-| GET | `/api/admin/orders` | List saved orders by due date. Optional query parameters are `status`, `from`, and `to`. Date bounds are inclusive and may be used separately or together. |
+| GET | `/api/admin/orders` | List order summaries (ID, name, due date, price, status and revision) sorted by due date and ID. Filter with `status`, `from`, and `to`. Both date bounds are inclusive. Pages default to 25 orders and accept a `limit` of 1–50. Pass the returned `X-Next-Cursor` as `after` with the same filters to continue. |
 | POST | `/api/admin/orders` | Create an order and return it with 201 |
 | GET | `/api/admin/orders/{id}` | Read one saved order |
 | PUT | `/api/admin/orders/{id}` | Replace order details |
 | PATCH | `/api/admin/orders/{id}` | Update status with `{"status":"in progress"}` |
 | DELETE | `/api/admin/orders/{id}` | Delete the order and return 204 |
 
-Create and replace look up the submitted product IDs in Neon. The server calculates the total from catalog prices unless `priceIsCustom` is true. Status updates preserve the saved price. The dashboard sends a UUID in `Idempotency-Key` on creation to prevent duplicate submissions. Repeat keys return 409. Existing-order mutations require a quoted revision in `If-Match`, such as `"1"`. A stale revision returns 409. Reload the list before editing again.
+Create and replace look up the submitted product IDs in Neon. The server calculates the total from catalog prices unless `priceIsCustom` is true. Status updates preserve the saved price. The dashboard sends a UUID in `Idempotency-Key` on creation to prevent duplicate submissions. Repeating a key with the same creation fields returns the saved order with 200. Reusing a key for a different submission returns 409. The dashboard retains the pending key in tab session storage and checks it after reload. Existing-order mutations require a quoted revision in `If-Match`, such as `"1"`. A stale revision returns 409. Reload the list before editing again.
 
 ## Authentication
 
