@@ -6,6 +6,8 @@ window.addEventListener('pageshow', async event => {
   try {
     const response = await fetch('/api/auth/session', { cache: 'no-store', signal: AbortSignal.timeout(10000) });
     if (response.ok && (await response.json()).user?.role === 'admin') {
+      invalidateOrders();
+      if (location.hash === '#orders') await loadOrders();
       document.body.hidden = false;
       return;
     }
@@ -18,21 +20,44 @@ const views = {
   'create-product': ['Create Product', 'Make room for something delicious.', 'New dishes start here', 'Product creation is coming soon.'],
   'manage-products': ['Products', 'A home for the dishes you share.', 'Your menu, together', 'Product management is coming soon.'],
   'manage-accounts': ['Manage Accounts', 'The people behind your kitchen.', 'A space for your team', 'Account management is coming soon.'],
-  orders: ['Orders', 'Keep track of what’s cooking.', 'Every order in one place', 'Order management is coming soon.'],
+  orders: ['Orders'],
+  'create-order': ['Add Order', 'Enter customer details and choose the products requested.'],
   stats: ['Stats', 'See how your kitchen is doing.', 'Get to know your business', 'Business statistics are coming soon.'],
 };
 
+let dueDateTimer;
+function refreshDueDates() {
+  clearTimeout(dueDateTimer);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 3);
+  for (const time of document.querySelectorAll('#order-drafts time')) {
+    const due = new Date(time.dateTime + 'T00:00:00');
+    time.classList.toggle('due-soon', due >= today && due < cutoff);
+  }
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  dueDateTimer = setTimeout(refreshDueDates, midnight - now);
+}
+
 function showView() {
   const key = Object.hasOwn(views, location.hash.slice(1)) ? location.hash.slice(1) : 'dashboard';
-  ['view-title', 'view-description', 'placeholder-title', 'placeholder-description'].forEach((id, index) => { document.getElementById(id).textContent = views[key][index]; });
-  document.querySelector('.dashboard-placeholder').hidden = ['manage-products', 'create-product'].includes(key);
+  ['view-title', 'view-description', 'placeholder-title', 'placeholder-description'].forEach((id, index) => { document.getElementById(id).textContent = views[key][index] || ''; });
+  document.querySelector('.dashboard-placeholder').hidden = ['manage-products', 'create-product', 'orders', 'create-order'].includes(key);
   document.getElementById('create-product-form').hidden = key !== 'create-product';
   document.getElementById('products-view').hidden = key !== 'manage-products';
   document.getElementById('add-product').hidden = key !== 'manage-products';
   document.getElementById('product-back').hidden = key !== 'create-product';
-  document.title = `${views[key][0]} | Priya Parotha`;
+  document.getElementById('add-order').hidden = key !== 'orders';
+  document.getElementById('orders-view').hidden = key !== 'orders';
+  orderForm.hidden = key !== 'create-order';
+  clearTimeout(dueDateTimer);
+  if (key === 'orders') loadOrders();
+  if (editingDraft && orderForm.hidden) resetOrderForm();
+  if (editingDraft) document.getElementById('view-title').textContent = 'Edit Order';
+  document.title = `${document.getElementById('view-title').textContent} | Priya Parotha`;
+  const navKey = ({ 'create-order': 'orders', 'create-product': 'manage-products' })[key] || key;
   document.querySelectorAll('.dashboard-nav a').forEach(link => {
-    if (link.hash === `#${key === 'create-product' ? 'manage-products' : key}`) link.setAttribute('aria-current', 'page');
+    if (link.hash === `#${navKey}`) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
   });
   if (['create-product', 'manage-products', 'manage-accounts'].includes(key)) document.getElementById('manage-menu').open = true;
@@ -159,7 +184,341 @@ function renderEditImages(card, id, name) {
     wrapper.append(image, remove); container.append(wrapper);
   });
 }
+const orderForm = document.getElementById('create-order-form');
+const orderRows = document.getElementById('order-rows');
+const addOrderRow = document.getElementById('add-order-row');
+const createDraft = document.getElementById('create-draft');
+const orderRetry = document.getElementById('order-retry');
+const totalInput = document.getElementById('order-total');
+const resetTotal = document.getElementById('reset-order-total');
+let priceIsCustom = false;
+let orderCatalog = new Map();
+let editingDraft = null;
+let savingOrder = false;
+const pendingKey = 'pending-order-id';
+const cachedPages = new Map();
+let cursors = [''];
+let nextCursor = '';
+let listVersion = 0;
+const pagination = document.getElementById('order-pagination');
+const previousOrders = document.getElementById('previous-orders');
+const nextOrders = document.getElementById('next-orders');
+const confirmation = document.getElementById('order-confirmation');
+const orderList = document.getElementById('order-drafts');
+const ordersStatus = document.getElementById('orders-status');
+const orderError = document.getElementById('order-save-error');
+
+const orderFilters = document.getElementById('order-filters');
+const clearDates = document.getElementById('clear-order-dates');
+
+async function orderRequest(method, order, body, query = '') {
+  const headers = {};
+  if (method === 'POST') {
+    const key = sessionStorage.getItem(pendingKey) || crypto.randomUUID();
+    sessionStorage.setItem(pendingKey, key);
+    headers['Idempotency-Key'] = key;
+  }
+  if (body) headers['Content-Type'] = 'application/json';
+  if (order && method !== 'GET') headers['If-Match'] = `"${order.revision}"`;
+  const response = await fetch('/api/admin/orders' + (order ? '/' + order.id : query), {
+    method, headers, body: body && JSON.stringify(body), cache: 'no-store',
+  });
+  if (response.status === 401 || response.status === 403) invalidateOrders();
+  if (response.status === 204) return;
+  const result = await response.json();
+  if (!response.ok) throw Object.assign(new Error(result.error || 'Could not access orders'), { status: response.status });
+  if (method === 'GET' && !order) return { orders: result, next: response.headers.get('X-Next-Cursor') || '' };
+  return result;
+}
+
+function invalidateOrders() {
+  cachedPages.clear();
+  listVersion++;
+  cursors = [''];
+  pagination.hidden = true;
+  orderList.replaceChildren();
+}
+
+async function loadOrders() {
+  const version = ++listVersion;
+  const { status, from, to } = orderFilters.elements;
+  clearDates.hidden = !from.value && !to.value;
+  pagination.hidden = true;
+  orderList.replaceChildren();
+  if (from.value && to.value && from.value > to.value) {
+    ordersStatus.textContent = 'Choose an end date on or after the start date.';
+    return;
+  }
+  const params = new URLSearchParams();
+  if (status.value) params.set('status', status.value);
+  if (from.value) params.set('from', from.value);
+  if (to.value) params.set('to', to.value);
+  if (cursors.at(-1)) params.set('after', cursors.at(-1));
+  const key = '?' + params;
+  ordersStatus.textContent = 'Loading orders…';
+  try {
+    const page = cachedPages.get(key) ?? await orderRequest('GET', null, null, key);
+    if (version !== listVersion) return;
+    cachedPages.set(key, page);
+    if (cachedPages.size > 6) cachedPages.delete(cachedPages.keys().next().value);
+    nextCursor = page.next;
+    previousOrders.disabled = cursors.length === 1;
+    nextOrders.disabled = !nextCursor;
+    pagination.hidden = previousOrders.disabled && nextOrders.disabled;
+    renderOrders(page.orders);
+  } catch (error) {
+    if (version === listVersion || [401, 403].includes(error.status)) ordersStatus.textContent = error.message;
+  }
+}
+
+previousOrders.onclick = () => { cursors.pop(); loadOrders(); };
+nextOrders.onclick = () => { cursors.push(nextCursor); loadOrders(); };
+
+function renderOrders(orders) {
+  const { status, from, to } = orderFilters.elements;
+  for (const radio of status) {
+    if (!radio.value) continue;
+    const matches = orders.filter(order => order.status === radio.value);
+    if (!matches.length) continue;
+    const section = document.createElement('section');
+    section.className = 'order-section';
+    const heading = document.createElement('h2');
+    heading.className = 'title-1';
+    heading.textContent = radio.labels[0].textContent.trim();
+    section.append(heading, ...matches.map(renderOrder));
+    orderList.append(section);
+  }
+  ordersStatus.textContent = orders.length ? '' : (from.value || to.value || status.value ? 'No orders match these filters.' : 'No orders yet.');
+  if (location.hash === '#orders') refreshDueDates();
+}
+orderFilters.onchange = () => { cursors = ['']; loadOrders(); };
+orderFilters.onsubmit = event => { event.preventDefault(); loadOrders(); };
+clearDates.onclick = () => {
+  orderFilters.elements.from.value = '';
+  orderFilters.elements.to.value = '';
+  orderFilters.elements.from.focus();
+  orderFilters.onchange();
+};
+
+function fillOrderSelect(select) {
+  const previous = select.value;
+  select.replaceChildren(new Option('Choose a product', ''));
+  for (const product of orderCatalog.values()) select.add(new Option(product.name, product.id));
+  select.value = orderCatalog.has(previous) ? previous : '';
+}
+
+function orderPrice() {
+  let cents = 0n;
+  for (const row of orderRows.children) {
+    const product = orderCatalog.get(row.querySelector('select').value);
+    const quantity = row.querySelector('input').valueAsNumber;
+    if (!product) continue;
+    if (!/^\d+(?:\.\d{1,2})?$/.test(product.price)) return null;
+    if (!Number.isSafeInteger(quantity) || quantity < 1) continue;
+    const [dollars, fraction = ''] = product.price.split('.');
+    const unitCents = BigInt(dollars) * 100n + BigInt(fraction.padEnd(2, '0'));
+    cents += unitCents * BigInt(quantity);
+  }
+  return `${cents / 100n}.${String(cents % 100n).padStart(2, '0')}`;
+}
+
+function updateOrderTotal() {
+  const price = orderPrice();
+  if (!priceIsCustom) totalInput.value = price ?? '';
+  totalInput.placeholder = price === null ? 'Unavailable' : '0.00';
+  resetTotal.hidden = !priceIsCustom;
+  resetTotal.textContent = price === null ? 'Use calculated total' : `Use calculated total ($${price})`;
+  createDraft.disabled = savingOrder || !orderCatalog.size || (!priceIsCustom && price === null);
+}
+
+totalInput.oninput = () => {
+  priceIsCustom = true;
+  updateOrderTotal();
+};
+resetTotal.onclick = () => {
+  priceIsCustom = false;
+  updateOrderTotal();
+  totalInput.focus();
+};
+
+function updateOrderRows() {
+  const selects = [...orderRows.querySelectorAll('select')];
+  const selected = new Set(selects.map(select => select.value).filter(Boolean));
+  for (const select of selects) {
+    for (const option of select.options) option.disabled = option.value !== select.value && selected.has(option.value);
+    select.closest('.order-row').querySelector('button').hidden = selects.length === 1;
+  }
+  addOrderRow.disabled = selects.length >= orderCatalog.size;
+  updateOrderTotal();
+}
+
+function appendOrderRow() {
+  const row = document.getElementById('order-row-template').content.firstElementChild.cloneNode(true);
+  const select = row.querySelector('select');
+  fillOrderSelect(select);
+  row.querySelector('button').onclick = () => {
+    const neighbor = row.previousElementSibling || row.nextElementSibling;
+    row.remove();
+    updateOrderRows();
+    neighbor?.querySelector('select').focus();
+  };
+  orderRows.append(row);
+  updateOrderRows();
+  return select;
+}
+addOrderRow.onclick = () => appendOrderRow().focus();
+orderRows.onchange = updateOrderRows;
+orderRows.oninput = updateOrderTotal;
+orderRetry.onclick = loadProducts;
+
+function setOrderCatalog(products, message) {
+  orderCatalog = new Map(products.map(product => [product.id, product]));
+  for (const edit of orderList.querySelectorAll('[data-edit]')) edit.disabled = !orderCatalog.size;
+  for (const item of orderList.querySelectorAll('[data-product-id]')) {
+    item.textContent = `${orderCatalog.get(item.dataset.productId)?.name ?? item.dataset.productId} × ${item.dataset.quantity}`;
+  }
+  for (const select of orderRows.querySelectorAll('select')) fillOrderSelect(select);
+  if (!orderRows.childElementCount && products.length) appendOrderRow();
+  updateOrderRows();
+  document.getElementById('order-catalog-status').textContent = message;
+}
+
+orderForm.onsubmit = async event => {
+  event.preventDefault();
+  if (savingOrder) return;
+  const data = new FormData(orderForm);
+  const products = Object.create(null);
+  for (const row of orderRows.children) {
+    const id = row.querySelector('select').value;
+    const quantity = row.querySelector('input');
+    if (!orderCatalog.has(id)) return;
+    products[id] = quantity.valueAsNumber;
+  }
+  const [dollars, cents = ''] = totalInput.value.split('.');
+  const price = `${BigInt(dollars)}.${cents.padEnd(2, '0')}`;
+  const order = {
+    name: data.get('name'), address: data.get('address'), phone: data.get('phone'),
+    due: data.get('due'), products, price, priceIsCustom, status: editingDraft?.order.status ?? 'ordered',
+  };
+  savingOrder = true;
+  createDraft.disabled = true;
+  orderForm.inert = true;
+  orderError.textContent = '';
+  try {
+    await orderRequest(editingDraft ? 'PUT' : 'POST', editingDraft?.order, order);
+    if (!editingDraft) sessionStorage.removeItem(pendingKey);
+    confirmation.hidden = true;
+    invalidateOrders();
+    resetOrderForm();
+    if (location.hash === '#orders') await loadOrders();
+    else location.hash = 'orders';
+  } catch (error) {
+    orderError.textContent = error.message;
+  } finally {
+    savingOrder = false;
+    orderForm.inert = false;
+    updateOrderTotal();
+  }
+};
+
+function renderOrder(order) {
+  const draft = document.getElementById('order-draft-template').content.firstElementChild.cloneNode(true);
+  draft.querySelector('.order-name').textContent = order.name;
+  draft.querySelector('.order-price').textContent = `$ ${order.price}`;
+  const due = draft.querySelector('time');
+  due.dateTime = order.due;
+  due.textContent = `Due: ${due.dateTime}`;
+  let detailsRequest;
+  function getDetails() {
+    detailsRequest ??= orderRequest('GET', order).catch(error => { detailsRequest = null; throw error; });
+    return detailsRequest;
+  }
+  draft.querySelector('details').ontoggle = async event => {
+    if (!event.target.open) return;
+    try {
+      const detail = await getDetails();
+      draft.querySelector('.order-contact').textContent = `${detail.address} · ${detail.phone}`;
+      const items = Object.entries(detail.products).map(([id, quantity]) => {
+        const item = document.createElement('li');
+        item.textContent = `${orderCatalog.get(id)?.name ?? id} × ${quantity}`;
+        item.dataset.productId = id;
+        item.dataset.quantity = quantity;
+        return item;
+      });
+      draft.querySelector('ul').replaceChildren(...items);
+    } catch (error) { ordersStatus.textContent = error.message; }
+  };
+  const status = draft.querySelector('[data-order-status]');
+  status.value = order.status;
+  async function changeOrder(action) {
+    draft.inert = true;
+    try {
+      await action();
+    } catch (error) {
+      status.value = order.status;
+      ordersStatus.textContent = error.message;
+    } finally {
+      draft.inert = false;
+    }
+  }
+  status.onchange = () => changeOrder(async () => {
+    await orderRequest('PATCH', order, { status: status.value });
+    invalidateOrders();
+    await loadOrders();
+  });
+  const edit = draft.querySelector('[data-edit]');
+  edit.disabled = !orderCatalog.size;
+  edit.onclick = () => changeOrder(async () => {
+    order = await getDetails();
+    editingDraft = { order };
+    orderError.textContent = '';
+    priceIsCustom = order.priceIsCustom;
+    totalInput.value = order.price;
+    for (const field of ['name', 'phone', 'address', 'due']) orderForm.elements[field].value = order[field];
+    orderRows.replaceChildren();
+    for (const [id, quantity] of Object.entries(order.products)) {
+      const select = appendOrderRow();
+      select.value = id;
+      select.closest('.order-row').querySelector('input').value = quantity;
+    }
+    updateOrderRows();
+    createDraft.textContent = 'Save changes';
+    location.hash = 'create-order';
+  });
+  draft.querySelector('[data-trash]').onclick = () => changeOrder(async () => {
+    await orderRequest('DELETE', order);
+    invalidateOrders();
+    await loadOrders();
+    orderFilters.querySelector(':checked').focus();
+  });
+  return draft;
+}
+
+function resetOrderForm() {
+  editingDraft = null;
+  orderError.textContent = '';
+  priceIsCustom = false;
+  createDraft.textContent = 'submit order';
+  orderForm.reset();
+  orderRows.replaceChildren();
+  appendOrderRow();
+}
+async function recoverOrder() {
+  const id = sessionStorage.getItem(pendingKey);
+  if (!id) return;
+  try {
+    const saved = await orderRequest('GET', { id });
+    if (sessionStorage.getItem(pendingKey) !== id) return;
+    sessionStorage.removeItem(pendingKey);
+    confirmation.textContent = `Your previous order for ${saved.name} was saved.`;
+    confirmation.hidden = false;
+    if (location.hash === '#create-order') location.hash = 'orders';
+  } catch (error) {
+    if (error.status !== 404) orderError.textContent = 'Could not confirm the previous save. Retrying uses the same order ID.';
+  }
+}
 showView();
+recoverOrder();
 function addEditImages(card, id, files) {
   const retained = (selectedPhotos.get(id) || []).filter(photo => photo !== '/assets/images/flower.svg').length;
   const staged = stagedImages.get(id);
@@ -292,6 +651,7 @@ async function loadProducts() {
   const retry = document.getElementById('products-retry');
   status.textContent = 'Loading products…';
   retry.hidden = true;
+  orderRetry.hidden = true;
   grid.setAttribute('aria-busy', 'true');
   tagFilter.disabled = true;
   try {
@@ -373,11 +733,14 @@ async function loadProducts() {
     });
     filterProducts();
     updateBulkSaveBar();
+    setOrderCatalog(products, products.length ? '' : 'Add a product to the catalog to start an order.');
     status.textContent = '';
     tagFilter.disabled = false;
   } catch {
     status.textContent = 'Could not load products. Please try again.';
     retry.hidden = false;
+    setOrderCatalog([], status.textContent);
+    orderRetry.hidden = false;
   } finally {
     grid.setAttribute('aria-busy', 'false');
   }

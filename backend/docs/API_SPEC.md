@@ -94,6 +94,21 @@ Images are optional for multipart creation. If none are submitted, the server sa
 
 `PATCH /api/products` accepts multipart form data with `edits` containing a JSON array of `{ before: Product, changes: Partial<Product> }` and repeated `photos:<id>` upload fields. Requires the same local development, loopback, and exact Origin checks as creation, plus `X-Product-Request: edit`. Up to 50 products, 10 photos per product, 20 MB new images per save. `published` must be boolean. All field and file validation precedes writes; the database update is atomic. Returns the updated Product array, 400 for invalid input, 409 for a changed/deleted product, or a generic 500. Failed saves preserve frontend edits. Deployed PATCH remains forbidden.
 
+## Orders
+
+Order endpoints require an admin session. Mutations require the same-origin dashboard and JSON for request bodies. Each order includes its UUID, revision, contact fields (`name`, `address`, `phone`), calendar date (`due`, YYYY-MM-DD), `products` dictionary of product ID to positive integer quantity, decimal-string `price`, boolean `priceIsCustom`, and `status`. The three status values are `ordered` (default), `in progress`, and `complete`.
+
+| Method | Path | Behavior |
+| --- | --- | --- |
+| GET | `/api/admin/orders` | List order summaries (ID, name, due date, price, status and revision) sorted by due date and ID. Filter with `status`, `from`, and `to`. Both date bounds are inclusive. Pages default to 25 orders and accept a `limit` of 1–50. Pass the returned `X-Next-Cursor` as `after` with the same filters to continue. |
+| POST | `/api/admin/orders` | Create an order and return it with 201 |
+| GET | `/api/admin/orders/{id}` | Read one saved order |
+| PUT | `/api/admin/orders/{id}` | Replace order details |
+| PATCH | `/api/admin/orders/{id}` | Update status with `{"status":"in progress"}` |
+| DELETE | `/api/admin/orders/{id}` | Delete the order and return 204 |
+
+Create and replace look up the submitted product IDs in Neon. The server calculates the total from catalog prices unless `priceIsCustom` is true. Status updates preserve the saved price. The dashboard sends a UUID in `Idempotency-Key` on creation to prevent duplicate submissions. Repeating a key with the same creation fields returns the saved order with 200. Reusing a key for a different submission returns 409. The dashboard retains the pending key in tab session storage and checks it after reload. Existing-order mutations require a quoted revision in `If-Match`, such as `"1"`. A stale revision returns 409. Reload the list before editing again.
+
 ## Authentication
 
 Dashboard pages (including extensionless and encoded aliases), dashboard JavaScript/CSS, product mutation methods, and `/api/admin/*` require a current server-side admin session. Dashboard navigation redirects non-admins to `/?auth_error=admin_required`; protected assets and APIs return 401 for absent/invalid/expired sessions, 403 for customers, or 503 if access cannot be verified. Protected responses use `Cache-Control: private, no-store` and `Vary: Cookie`. Public product/tag GET routes retain their existing read access.

@@ -19,4 +19,4 @@ if (process.argv.includes('--seed')) {
   `));
   console.log('Sample CSV products imported; existing IDs were preserved.');
 }
-console.log('Neon products table is ready.');
+console.log('Neon products and orders tables are ready.');
