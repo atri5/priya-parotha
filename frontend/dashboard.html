@@ -41,6 +41,7 @@
         <p class="eyebrow caption-3">Priya Parotha</p>
         <div class="view-heading">
           <h1 class="heading-3" id="view-title">Dashboard</h1>
+          <a class="button button-md" id="add-order" href="#create-order" hidden><span aria-hidden="true">+</span> Add Order</a>
           <a class="button button-md" id="add-product" href="#create-product" hidden><span aria-hidden="true">+</span> Add Product</a>
         </div>
         <a class="product-back body-5" id="product-back" href="#manage-products" hidden>← Back to products</a>
@@ -51,6 +52,79 @@
           <h2 class="title-1" id="placeholder-title">Your kitchen at a glance</h2>
           <p class="body-3" id="placeholder-description">Your overview will live here. Use the sidebar to explore the workspace.</p>
         </section>
+        <section id="orders-view" aria-label="Orders" hidden>
+          <form id="order-filters" class="product-filter-toolbar" aria-labelledby="order-filters-heading">
+            <h2 id="order-filters-heading" class="title-1">Filters</h2>
+            <fieldset class="image-field">
+              <legend class="button-sm">Order status</legend>
+              <div class="publication-options body-5">
+                <label><input type="radio" name="status" value="" checked /> All</label>
+                <label><input type="radio" name="status" value="ordered" /> Ordered</label>
+                <label><input type="radio" name="status" value="in progress" /> In Progress</label>
+                <label><input type="radio" name="status" value="complete" /> Complete</label>
+              </div>
+            </fieldset>
+            <div class="order-date-filters">
+              <label class="form-field button-sm">Due from<input type="date" name="from" /></label>
+              <label class="form-field button-sm">Due through<input type="date" name="to" /></label>
+              <button class="bulk-undo button-sm" id="clear-order-dates" type="button" hidden>Clear dates</button>
+            </div>
+          </form>
+          <p id="orders-status" class="body-5" role="status"></p>
+          <div id="order-drafts"></div>
+        </section>
+        <template id="order-draft-template">
+          <div class="order-card">
+            <details>
+              <summary><span class="order-name"></span><strong class="order-summary-total"><span class="order-price"></span> <span aria-hidden="true">|</span> <time></time></strong></summary>
+              <p class="order-contact"></p>
+              <ul></ul>
+            </details>
+            <div class="order-actions">
+              <select class="bulk-undo button-sm" data-order-status aria-label="Order status">
+                <option value="ordered">Ordered</option>
+                <option value="in progress">In Progress</option>
+                <option value="complete">Complete</option>
+              </select>
+              <button class="bulk-undo" type="button" data-edit aria-label="Edit order" title="Edit order">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5 4 4M4 20l4.5-1 12-12a2.8 2.8 0 0 0-4-4l-12 12z"/></svg>
+              </button>
+              <button class="bulk-undo" type="button" data-trash aria-label="Delete order" title="Delete order">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7"/></svg>
+              </button>
+            </div>
+          </div>
+        </template>
+        <form id="create-order-form" class="product-form" hidden>
+          <label class="form-field button-sm">Due date<input type="date" name="due" required /></label>
+          <label class="form-field button-sm">Name<input name="name" required /></label>
+          <label class="form-field button-sm">Address<textarea name="address" rows="2" required></textarea></label>
+          <label class="form-field button-sm">Phone number<input type="tel" name="phone" required /></label>
+          <fieldset class="image-field">
+            <legend class="title-3">Products</legend>
+            <p class="body-5" id="order-catalog-status" role="status">Loading products…</p>
+            <button id="order-retry" class="bulk-undo button-sm" type="button" hidden>Retry loading products</button>
+            <div id="order-rows"></div>
+            <template id="order-row-template">
+              <div class="order-row">
+                <label class="form-field button-sm">Product<select name="product" required></select></label>
+                <label class="form-field button-sm">Quantity<input name="quantity" type="number" min="1" max="9007199254740991" step="1" value="1" required /></label>
+                <button class="bulk-undo button-sm" type="button">Remove</button>
+              </div>
+            </template>
+            <button id="add-order-row" class="bulk-undo button-sm" type="button" disabled>Add product row</button>
+          </fieldset>
+          <div class="form-field order-total-field">
+            <label class="title-1" for="order-total">Order total (USD)</label>
+            <input id="order-total" name="price" type="text" inputmode="decimal" pattern="[0-9]+([.][0-9]{1,2})?" title="Enter a nonnegative amount with up to two decimal places." value="0.00" required />
+            <button type="button" class="bulk-undo button-sm" id="reset-order-total" hidden>Use calculated total</button>
+          </div>
+          <p class="form-error body-6" id="order-save-error" role="alert"></p>
+          <div class="form-actions">
+            <button id="create-draft" class="button button-md" type="submit" disabled>submit order</button>
+            <a class="product-back body-5" href="#orders">Back to orders</a>
+          </div>
+        </form>
         <section id="products-view" aria-label="Products" hidden>
           <div class="product-filter-toolbar">
           <div class="publication-filter" role="group" aria-labelledby="publication-label">

@@ -22,3 +22,19 @@ drop policy if exists "Products are readable" on public.products;
 create policy "Products are readable" on public.products for select using (true);
 
 alter table public.products add column if not exists published boolean not null default false;
+
+create table if not exists public.orders (
+  id uuid primary key default gen_random_uuid(),
+  name text not null check (btrim(name) <> ''),
+  address text not null check (btrim(address) <> ''),
+  phone text not null check (btrim(phone) <> ''),
+  due date not null,
+  products jsonb not null check (jsonb_typeof(products) = 'object' and products <> '{}'::jsonb),
+  price numeric not null check (price >= 0 and scale(price) = 2),
+  "priceIsCustom" boolean not null default false,
+  status text not null default 'ordered' check (status in ('ordered', 'in progress', 'complete')),
+  revision integer not null default 1
+);
+
+alter table public.orders enable row level security;
+revoke all on table public.orders from public;

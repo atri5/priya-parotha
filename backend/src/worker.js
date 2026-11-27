@@ -2,6 +2,7 @@ import { editProductsFromForm } from './product/edit-products-request.js';
 import { createProductFromForm } from './product/create-product-request.js';
 import { createProductApi } from './product/product-api.js';
 import { NeonProductDatabase } from './product/storage/neon-product-database.js';
+import { handleOrders } from './order/order-api.js';
 import { posix } from 'node:path';
 import { getSessionUser, handleAuth } from './auth/auth.js';
 
@@ -31,6 +32,8 @@ export default {
         return denied;
       }
       if (dashboardPage || dashboardAsset) return privateResponse(await env.ASSETS.fetch(request));
+      const orders = /^\/api\/admin\/orders(?:\/([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}))?\/?$/i.exec(pathname);
+      if (orders) return privateResponse(await handleOrders(request, env, orders[1]));
       if (adminApi) return privateResponse(errorResponse('Not found', 404));
     }
     const batchEdit = request.method === 'PATCH' && pathname === '/api/products';
