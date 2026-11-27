@@ -41,7 +41,6 @@ export function createAuthHandler(databaseFactory = env => new AuthDatabase(env.
     const flowName = local ? 'priya_oauth' : '__Host-priya_oauth';
     const cookie = (name, value, seconds) => `${name}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${seconds}${local ? '' : '; Secure'}`;
     const cookies = requestCookies(request);
-    const sessionToken = cookies.get(sessionName);
     const sessionHash = getSessionHash(request);
     const googleEnabled = Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
     const callback = url.pathname === '/api/auth/google/callback';
@@ -66,7 +65,8 @@ export function createAuthHandler(databaseFactory = env => new AuthDatabase(env.
       };
       if (url.pathname === '/api/auth/session') {
         const user = sessionHash ? await database.getSession(sessionHash) : null;
-        return json({ user, googleEnabled }, 200, !user && sessionToken ? { 'Set-Cookie': cookie(sessionName, '', 0) } : {});
+        // A read from another tab must not overwrite a newly issued cookie.
+        return json({ user, googleEnabled });
       }
       if (url.pathname === '/api/auth/logout') {
         if (sessionHash) await database.deleteSession(sessionHash);

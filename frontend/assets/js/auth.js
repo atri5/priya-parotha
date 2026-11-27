@@ -1,4 +1,26 @@
 const account = document.querySelector('[data-auth]');
+const authEvents = typeof BroadcastChannel === 'function' ? new BroadcastChannel('priya-auth') : null;
+
+async function sendAuthRequest(path, data) {
+  const response = await fetch(`/api/auth/${path}`, {
+    method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data || {}),
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error || 'Sign in could not be completed. Please try again.');
+  return result;
+}
+
+async function readAuthSession() {
+  const response = await fetch('/api/auth/session', { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(10000) });
+  if (!response.ok) throw new Error('Could not verify the session');
+  return response.json();
+}
+
+async function revokeSession() {
+  await sendAuthRequest('logout');
+  authEvents?.postMessage('logout');
+}
 
 if (account) {
   const toggle = account.querySelector('[data-auth-toggle]');
@@ -79,15 +101,6 @@ if (account) {
     google.disabled = !googleEnabled;
     panel.querySelector('[data-google-note]').hidden = googleEnabled;
   }
-  async function send(path, data) {
-    const response = await fetch(`/api/auth/${path}`, {
-      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data || {}),
-    });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'Sign in could not be completed. Please try again.');
-    return result;
-  }
   function setBusy(value) {
     busy = value;
     form.setAttribute('aria-busy', String(value));
@@ -134,7 +147,7 @@ if (account) {
     }
     setBusy(true);
     try {
-      await send(registering ? 'register' : 'login', {
+      await sendAuthRequest(registering ? 'register' : 'login', {
         email: email.value, password: password.value,
         ...(registering ? { firstName: firstName.value, lastName: lastName.value } : {}),
       });
@@ -151,19 +164,20 @@ if (account) {
     setBusy(true);
     logout.textContent = 'Signing out…';
     showMessage('');
-    try { await send('logout'); window.location.assign('/'); }
+    try { await revokeSession(); location.replace('/'); }
     catch { showMessage('Could not sign out. Please try again.'); }
     finally { setBusy(false); logout.textContent = 'Sign out'; }
   });
 
+  let sessionCheck = 0;
   async function loadSession() {
+    const check = ++sessionCheck;
     try {
-      const response = await fetch('/api/auth/session', { credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(10000) });
-      if (!response.ok) throw new Error();
-      const session = await response.json();
-      render(session.user, session.googleEnabled);
-    } catch { showMessage('Sign in is temporarily unavailable. Please try again later.'); }
-    finally { toggle.disabled = false; }
+      const { user, googleEnabled } = await readAuthSession();
+      if (check === sessionCheck) render(user, googleEnabled);
+    } catch {
+      if (check === sessionCheck) showMessage('Sign in is temporarily unavailable. Please try again later.');
+    } finally { if (check === sessionCheck) toggle.disabled = false; }
   }
   const errors = {
     admin_required: 'Sign in with an admin account to open the dashboard.',
@@ -180,4 +194,55 @@ if (account) {
   }
   loadSession().then(() => { if (authError) { showMessage(authError); setOpen(true); } });
   window.addEventListener('pageshow', event => { if (event.persisted) loadSession(); });
+  authEvents?.addEventListener('message', event => { if (event.data === 'logout') loadSession(); });
+}
+
+const dashboardLogout = document.querySelector('[data-dashboard-logout]');
+if (dashboardLogout) {
+  const status = document.getElementById('dashboard-logout-status');
+  let sessionCheck = 0;
+
+  async function verifyDashboardSession() {
+    const check = ++sessionCheck;
+    let session;
+    try { session = await readAuthSession(); }
+    catch { /* Keep the dashboard hidden if access cannot be verified. */ }
+    if (check !== sessionCheck) return;
+    document.body.hidden = session?.user?.role !== 'admin';
+    if (document.body.hidden) location.replace('/?auth_error=admin_required');
+  }
+
+  dashboardLogout.disabled = false;
+  dashboardLogout.addEventListener('click', async () => {
+    dashboardLogout.disabled = true;
+    dashboardLogout.textContent = 'Signing out…';
+    status.textContent = '';
+    try {
+      await revokeSession();
+      sessionCheck++;
+      document.body.hidden = true;
+      location.replace('/');
+    } catch {
+      status.textContent = 'Could not sign out. Please try again.';
+      dashboardLogout.textContent = 'Sign out';
+      dashboardLogout.disabled = false;
+      dashboardLogout.focus();
+    }
+  });
+
+  window.addEventListener('pagehide', event => {
+    if (event.persisted) {
+      sessionCheck++;
+      document.body.hidden = true;
+    }
+  });
+  window.addEventListener('pageshow', event => { if (event.persisted) verifyDashboardSession(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') verifyDashboardSession();
+  });
+  authEvents?.addEventListener('message', event => {
+    if (event.data !== 'logout') return;
+    document.body.hidden = true;
+    verifyDashboardSession();
+  });
 }

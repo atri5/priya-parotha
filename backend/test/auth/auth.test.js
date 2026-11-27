@@ -78,8 +78,12 @@ test('Auth registers customers, rotates/revokes sessions, rejects CSRF, and cons
   response = await handle(request('login', credentials, firstCookie), env);
   const secondCookie = cookieFrom(response);
   assert.notEqual(firstCookie, secondCookie);
-  assert.equal((await (await handle(request('session', null, firstCookie), env)).json()).user, null);
-  assert.equal((await handle(request('logout', {}, secondCookie), env)).status, 200);
+  const staleSession = await handle(request('session', null, firstCookie), env);
+  assert.equal((await staleSession.json()).user, null);
+  assert.equal(staleSession.headers.has('Set-Cookie'), false);
+  response = await handle(request('logout', {}, secondCookie), env);
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('Set-Cookie'), /^__Host-priya_session=;.*Max-Age=0; Secure$/);
   assert.equal(sessions.size, 0);
   allowed = false;
   assert.equal((await handle(request('login', credentials), env)).status, 429);

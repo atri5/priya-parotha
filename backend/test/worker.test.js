@@ -7,13 +7,18 @@ import { AuthDatabase } from '../src/auth/storage.js';
 test('admin boundary protects dashboard aliases/assets and writes, rechecks roles, and fails closed', async t => {
   const adminToken = 'a'.repeat(43), customerToken = 'c'.repeat(43);
   const digest = value => createHash('sha256').update(value).digest('hex');
-  let role = 'admin', unavailable = false, privateAssets = 0;
+  let role = 'admin', unavailable = false, revoked = false, privateAssets = 0;
   t.mock.method(console, 'error', () => {});
   t.mock.method(AuthDatabase.prototype, 'getSession', async hash => {
     if (unavailable) throw new Error('Database unavailable');
-    if (hash === digest(adminToken)) return { id: 'admin-user', role };
+    if (hash === digest(adminToken) && !revoked) return { id: 'admin-user', role };
     if (hash === digest(customerToken)) return { id: 'customer-user', role: 'customer' };
     return null;
+  });
+  t.mock.method(AuthDatabase.prototype, 'deleteSession', async hash => {
+    if (unavailable) throw new Error('Database unavailable');
+    assert.equal(hash, digest(adminToken));
+    revoked = true;
   });
   const env = {
     DATABASE_URL: 'postgresql://user:pass@example.com/db', LOCAL_PRODUCT_WRITES: 'true',
@@ -66,4 +71,18 @@ test('admin boundary protects dashboard aliases/assets and writes, rechecks role
   assert.equal((await worker.fetch(request('/dashboard.html', adminToken), env)).status, 503);
   assert.equal((await worker.fetch(request('/api/products', adminToken, 'POST'), env)).status, 503);
   assert.equal(privateAssets, before);
+
+  const logout = origin => worker.fetch(request('/api/auth/logout', adminToken, 'POST', { Origin: origin }), env);
+  const failedLogout = await logout('http://localhost:5173');
+  assert.equal(failedLogout.status, 500);
+  assert.equal(failedLogout.headers.has('Set-Cookie'), false);
+  unavailable = false;
+  role = 'admin';
+  assert.equal((await logout('https://other.example')).status, 403);
+  assert.equal((await worker.fetch(request('/dashboard.html', adminToken), env)).status, 200);
+  assert.equal((await logout('http://localhost:5173')).status, 200);
+  assert.equal((await worker.fetch(request('/dashboard.html', adminToken), env)).status, 303);
+  assert.equal((await worker.fetch(request('/assets/js/dashboard.js', adminToken), env)).status, 401);
+  assert.equal((await worker.fetch(request('/api/admin/users', adminToken), env)).status, 401);
+  assert.equal((await worker.fetch(request('/api/products', adminToken, 'POST'), env)).status, 401);
 });

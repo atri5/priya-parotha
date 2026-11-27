@@ -102,7 +102,7 @@ All routes below are handled by the same Worker. POST requests must include a ma
 
 | Method | Path | Behavior |
 | --- | --- | --- |
-| GET | `/api/auth/session` | `{ user: { id, email, username, role, first_name, last_name } \| null, googleEnabled }`; clears invalid/expired cookies |
+| GET | `/api/auth/session` | `{ user: { id, email, username, role, first_name, last_name } \| null, googleEnabled }`; returns `user: null` for invalid, revoked, or expired sessions without modifying cookies |
 | POST | `/api/auth/register` | `{ email, password, firstName, lastName }`; requires both names, creates a customer and session; returns `{ user, redirectTo: '/' }` |
 | POST | `/api/auth/login` | `{ email, password }`; creates a fresh session; returns `{ user, redirectTo: '/' }` |
 | POST | `/api/auth/logout` | Revokes the current session and clears its cookie; returns `{ redirectTo: '/' }` |

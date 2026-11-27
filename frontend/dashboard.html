@@ -9,6 +9,7 @@
     <link rel="icon" href="assets/images/flower.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="assets/css/styles.css" />
     <link rel="stylesheet" href="assets/css/dashboard.css" />
+    <script src="/assets/js/auth.js" defer></script>
     <script src="assets/js/dashboard.js" defer></script>
   </head>
   <body class="dashboard-page">
@@ -18,7 +19,10 @@
       <nav class="dashboard-pages body-5" aria-label="Website pages">
         <a href="index.html">Home</a><a href="menu.html">Menu</a><a href="contact.html">Contact us</a>
       </nav>
-      <span class="dashboard-label caption-3">Admin workspace</span>
+      <div>
+        <button class="sign-in button-sm" type="button" data-dashboard-logout aria-describedby="dashboard-logout-status" disabled>Sign out</button>
+        <p class="caption-2 dashboard-logout-status" id="dashboard-logout-status" role="status"></p>
+      </div>
     </header>
     <div class="dashboard-layout">
       <aside class="dashboard-sidebar">
